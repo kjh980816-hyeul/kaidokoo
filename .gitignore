@@ -1,0 +1,29 @@
+# === 시크릿 (HARD: 30-constraints-security) ===
+.env
+.env.*
+*.key
+*.pem
+secrets/
+
+# === Java / Gradle ===
+backend/.gradle/
+backend/build/
+backend/bin/
+backend/!gradle/wrapper/gradle-wrapper.jar
+
+# === Node / Vite ===
+frontend/node_modules/
+frontend/dist/
+frontend/*.local
+
+# === 핸드오프 원본 / 대용량 산출물 (repo엔 정리된 CLAUDE.md·rules만) ===
+_handoff_extracted/
+*.zip
+씨미 선장 팬카페.html
+
+# === IDE / OS ===
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

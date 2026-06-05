@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: fancafe
+  profiles:
+    # 프로파일 미지정 시 로컬(H2)로 동작. 운영은 SPRING_PROFILES_ACTIVE=prod
+    default: local
+  jpa:
+    hibernate:
+      # 스키마는 Flyway 전용. JPA는 검증만 한다 (HARD: 30-constraints-security)
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+---
+# 로컬 개발: 설치 0인 H2 (MySQL 호환 모드). 운영은 MySQL 8 (ADR-0002)
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:mem:kaidoku;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  flyway:
+    # 로컬에만 개발용 시드 데이터 추가 (운영 프로파일엔 미적용)
+    locations: classpath:db/migration,classpath:db/seed
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+---
+# 운영: MySQL 8. 접속정보는 전부 환경변수 (HARD: 시크릿 코드/문서 노출 금지)
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
