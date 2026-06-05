@@ -9,7 +9,7 @@ secrets/
 backend/.gradle/
 backend/build/
 backend/bin/
-backend/!gradle/wrapper/gradle-wrapper.jar
+# gradle-wrapper.jar는 커밋 대상(래퍼 재현성)이라 무시하지 않음
 
 # === Node / Vite ===
 frontend/node_modules/
