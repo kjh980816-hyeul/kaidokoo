@@ -1,10 +1,13 @@
 package app.kaidoku.fancafe.post;
 
+import app.kaidoku.fancafe.auth.CurrentMemberArgumentResolver;
 import app.kaidoku.fancafe.common.ApiException;
+import app.kaidoku.fancafe.member.MemberRepository;
 import app.kaidoku.fancafe.post.dto.PostDetailResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,11 +22,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(PostController.class)
+@Import(CurrentMemberArgumentResolver.class) // 전역 WebMvcConfig가 슬라이스에서 요구하는 @CurrentMember 리졸버
 class PostControllerTest {
 
     @Autowired MockMvc mockMvc;
 
     @MockitoBean PostService postService;
+
+    /** 리졸버 의존성. PostController는 @CurrentMember를 쓰지 않지만 슬라이스 배선상 필요. */
+    @MockitoBean MemberRepository memberRepository;
 
     @Test
     void detail_returnsJson() throws Exception {

@@ -8,6 +8,9 @@ import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
+    /** 게시판에 글이 하나라도 있는지(게시판 삭제 가드). */
+    boolean existsByBoard_Id(Long boardId);
+
     /** 게시판 글 목록. 작성자 fetch join으로 N+1 회피. 고정글 우선, 최신순. */
     @Query("""
             select p from Post p

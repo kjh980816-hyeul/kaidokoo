@@ -74,4 +74,16 @@ public class Board {
     public void changeVisibility(boolean visible) {
         this.visible = visible;
     }
+
+    /** 게시판 설정 수정(관리자). code(URL 슬러그)는 링크 안정성을 위해 변경하지 않는다. */
+    public void update(String nameKr, String nameEn, String description,
+                       int sortOrder, BoardType type, Role writeRole, boolean visible) {
+        this.nameKr = nameKr;
+        this.nameEn = nameEn;
+        this.description = description;
+        this.sortOrder = sortOrder;
+        this.type = type;
+        this.writeRole = writeRole;
+        this.visible = visible;
+    }
 }

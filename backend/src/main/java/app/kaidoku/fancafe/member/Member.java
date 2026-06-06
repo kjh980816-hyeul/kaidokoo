@@ -1,13 +1,17 @@
 package app.kaidoku.fancafe.member;
 
 import app.kaidoku.fancafe.common.Role;
+import app.kaidoku.fancafe.grade.Grade;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -44,6 +48,11 @@ public class Member {
     @Column(nullable = false, length = 20)
     private MemberStatus status;
 
+    /** 등급(별명/칭호). 관리자가 수동 배정. 인증 전 회원은 null일 수 있다. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "grade_id")
+    private Grade grade;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -56,5 +65,17 @@ public class Member {
         m.status = MemberStatus.ACTIVE;
         m.createdAt = LocalDateTime.now();
         return m;
+    }
+
+    public void assignGrade(Grade grade) {
+        this.grade = grade;
+    }
+
+    public void changeRole(Role role) {
+        this.role = role;
+    }
+
+    public void changeStatus(MemberStatus status) {
+        this.status = status;
     }
 }
