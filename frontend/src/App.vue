@@ -1,8 +1,43 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
 import CelestialBackdrop from '@/components/CelestialBackdrop.vue'
 import Emblem from '@/components/Emblem.vue'
 import { devMemberId, setDevMemberId } from '@/lib/devSession'
+
+const LOADER_MS = 2200 // 로딩 인트로 노출 시간(시안 톤)
+const FADE_MS = 1000 // #loader.gone opacity 트랜지션 길이와 일치
+
+// 로딩 인트로: 별을 읽어 항로를 정하는 연출. reduced-motion이면 건너뛴다.
+const reduceMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const loaderGone = ref(reduceMotion) // true면 #loader DOM 제거
+const booted = ref(reduceMotion) // true면 페이지 페이드인 + 로더 .gone
+let showTimer = 0
+let fadeTimer = 0
+
+function runLoader(): void {
+  window.clearTimeout(showTimer)
+  window.clearTimeout(fadeTimer)
+  if (reduceMotion) {
+    loaderGone.value = true
+    booted.value = true
+    return
+  }
+  loaderGone.value = false
+  booted.value = false
+  showTimer = window.setTimeout(() => {
+    booted.value = true // .gone → opacity 페이드 시작
+    fadeTimer = window.setTimeout(() => (loaderGone.value = true), FADE_MS)
+  }, LOADER_MS)
+}
+
+function replayLoader(): void {
+  runLoader()
+}
+
+onMounted(runLoader)
 
 // 임시 dev 신원 전환(ADR-0003). 시드: 1=개발선원(MEMBER), 2=선장(ADMIN).
 // ⚠️ 로그인 도입 시 이 전환 UI와 devSession을 제거한다.
@@ -14,7 +49,19 @@ function onDevSwitch(e: Event): void {
 <template>
   <CelestialBackdrop />
 
-  <div class="page">
+  <div v-if="!loaderGone" id="loader" :class="{ gone: booted }">
+    <div class="loader-inner">
+      <div class="emblem-wrap">
+        <span class="emblem-spin"><Emblem /></span>
+        <span class="emblem-spin-rev"><Emblem /></span>
+      </div>
+      <div class="loading-text gold-text">Now Loading</div>
+      <div class="loading-sub">별을 읽어 항로를 정하는 중…</div>
+      <div class="load-bar"></div>
+    </div>
+  </div>
+
+  <div class="page" :class="{ show: booted }">
     <div class="wrap">
       <header class="topbar">
         <RouterLink to="/" class="brandmark" aria-label="홈으로">
@@ -44,6 +91,9 @@ function onDevSwitch(e: Event): void {
         <div class="f-emblem"><Emblem /></div>
         <div class="f-name">CAPTAIN'S STARCHART</div>
         <div class="f-sub">별을 보고 항해하는 선장과 선원들의 밤하늘 · 씨미(CIME) 공식 팬카페</div>
+        <button v-if="!reduceMotion" class="f-replay" type="button" @click="replayLoader">
+          로딩 화면 다시 보기
+        </button>
       </footer>
     </div>
   </div>
@@ -54,6 +104,11 @@ function onDevSwitch(e: Event): void {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  opacity: 0;
+  transition: opacity 1.1s ease 0.2s;
+}
+.page.show {
+  opacity: 1;
 }
 .page > .wrap {
   flex: 1;
@@ -170,6 +225,24 @@ function onDevSwitch(e: Event): void {
   color: var(--ink-faint);
   margin-top: 12px;
   letter-spacing: 0.2em;
+}
+.foot .f-replay {
+  margin-top: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--serif);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px solid rgba(201, 165, 92, 0.3);
+  padding-bottom: 3px;
+  transition: color 0.3s;
+}
+.foot .f-replay:hover {
+  color: var(--gold-2);
 }
 
 @media (max-width: 760px) {
