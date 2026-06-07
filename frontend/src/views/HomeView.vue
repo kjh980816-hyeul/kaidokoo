@@ -54,24 +54,27 @@ async function onCheckIn(): Promise<void> {
 </script>
 
 <template>
-  <!-- 라이브 배너 (beacon) -->
-  <a
-    v-if="live?.live"
-    class="live-banner on"
-    :href="live.streamUrl || '#'"
-    :target="live.streamUrl ? '_blank' : undefined"
-    rel="noopener"
-  >
+  <!-- 라이브 배너 (beacon) — 항상 표시, 데이터 기반 ON/OFF -->
+  <section class="live-banner" :class="{ on: live?.live }">
     <span class="beacon"><Emblem /></span>
     <div class="lb-text">
       <div class="lb-status">
         <span class="live-dot" aria-hidden="true"></span>
-        <span>ON AIR · 지금 항해 중</span>
+        <span>{{ live?.live ? 'ON AIR · 지금 항해 중' : 'OFF AIR · 정박 중' }}</span>
       </div>
-      <div class="lb-sub">{{ live.title || '카이도쿠 선장 방송 중' }}</div>
+      <div class="lb-sub">
+        {{ live?.live ? live.title || '카이도쿠 선장 방송 중' : '다음 항해를 기다려 주세요' }}
+      </div>
     </div>
-    <span v-if="live.streamUrl" class="lb-cta">방송 보기</span>
-  </a>
+    <a
+      v-if="live?.live && live.streamUrl"
+      class="lb-cta"
+      :href="live.streamUrl"
+      target="_blank"
+      rel="noopener"
+      >방송 보기</a
+    >
+  </section>
 
   <!-- 히어로 -->
   <section class="hero">

@@ -350,14 +350,15 @@ select:focus {
   position: absolute;
   transform-origin: 50% 50%;
 }
+/* 두 레이어를 같은 크기로 반대 방향 회전 → 사각 프레임이 겹쳐 8각 별이 돈다 */
 .emblem-spin {
   inset: 0;
   animation: spin 36s linear infinite;
 }
 .emblem-spin-rev {
-  inset: 12%;
-  opacity: 0.5;
-  animation: spin 50s linear infinite reverse;
+  inset: 0;
+  opacity: 0.6;
+  animation: spin 28s linear infinite reverse;
 }
 @keyframes spin {
   to {
