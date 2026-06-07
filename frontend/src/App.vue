@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import { devMemberId, setDevMemberId } from '@/lib/devSession'
+
+// 임시 dev 신원 전환(ADR-0003). 시드: 1=개발선원(MEMBER), 2=선장(ADMIN).
+// ⚠️ 로그인 도입 시 이 전환 UI와 devSession을 제거한다.
+function onDevSwitch(e: Event): void {
+  setDevMemberId(Number((e.target as HTMLSelectElement).value))
+}
 </script>
 
 <template>
@@ -12,6 +19,14 @@ import { RouterLink, RouterView } from 'vue-router'
         </RouterLink>
         <nav aria-label="주요 메뉴">
           <RouterLink to="/">정박지</RouterLink>
+          <RouterLink to="/admin">운영</RouterLink>
+          <label class="dev-switch" title="임시 dev 로그인 (소셜 로그인 도입 전)">
+            <span aria-hidden="true">⚓</span>
+            <select :value="devMemberId" @change="onDevSwitch">
+              <option :value="1">개발선원 (MEMBER)</option>
+              <option :value="2">선장 (ADMIN)</option>
+            </select>
+          </label>
         </nav>
       </div>
     </header>
@@ -70,9 +85,28 @@ import { RouterLink, RouterView } from 'vue-router'
   letter-spacing: 0.04em;
 }
 
+nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
 nav a {
   font-size: 0.9rem;
   letter-spacing: 0.04em;
+}
+
+.dev-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--gold-dim);
+}
+
+.dev-switch select {
+  padding: 0.22rem 0.4rem;
+  font-size: 0.78rem;
 }
 
 .site-main {

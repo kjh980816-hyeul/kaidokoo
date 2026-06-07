@@ -24,6 +24,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PostDetailView.vue'),
     props: true,
   },
+  {
+    path: '/admin',
+    name: 'admin',
+    component: () => import('@/views/admin/AdminView.vue'),
+  },
 ]
 
 export const router = createRouter({

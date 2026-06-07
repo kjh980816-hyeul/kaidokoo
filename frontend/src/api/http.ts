@@ -1,4 +1,6 @@
 // 모든 API 호출의 단일 진입점. 컴포넌트에서 직접 fetch 금지(00-stack: api/ 레이어).
+import { devMemberId } from '@/lib/devSession'
+
 const BASE = '/api'
 
 interface ServerError {
@@ -9,7 +11,12 @@ interface ServerError {
 
 export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      // 임시 신원 헤더(ADR-0003). 공개 엔드포인트에선 서버가 무시한다.
+      'X-Member-Id': String(devMemberId.value),
+      ...(init?.headers ?? {}),
+    },
     ...init,
   })
 
