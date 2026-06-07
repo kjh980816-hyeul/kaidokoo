@@ -105,14 +105,16 @@ a:hover {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background: radial-gradient(
-    120% 85% at 50% 118%,
-    var(--bg-neb-2) 0%,
-    var(--bg-neb-1) 22%,
-    var(--bg-deep) 48%,
-    var(--bg-night) 70%,
-    var(--bg-abyss) 100%
-  );
+  /* 더 어둡게: 밝은 네뷸라 비중을 낮추고 abyss(거의 검정)가 지배하도록 */
+  background:
+    radial-gradient(
+      120% 80% at 50% 122%,
+      var(--bg-neb-1) 0%,
+      var(--bg-deep) 16%,
+      var(--bg-night) 38%,
+      var(--bg-abyss) 72%
+    ),
+    var(--bg-abyss);
 }
 #starfield {
   position: fixed;
