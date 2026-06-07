@@ -1,29 +1,58 @@
-/* 유령선장 카이도쿠 — 디자인 토큰 + 전역 베이스 (기획서 §8: 골드×미드나잇 네이비) */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+/* ============================================================
+   유령선장 카이도쿠 — Captain's Starchart (천문 항해)
+   Gold × Midnight Navy. 디자인 시안(_sian_source.html) 이식.
+   골드 외 다른 강조색 없음.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Nanum+Myeongjo:wght@400;700;800&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 
 :root {
-  /* 배경 네이비 (가장자리 → 중앙) */
-  --navy-900: #0a0e27;
-  --navy-800: #0d1b3e;
-  --navy-600: #243b5e;
-  /* 포인트 골드 */
-  --gold: #d4af6a;
-  --gold-bright: #e8d5a0;
-  --gold-dim: #c9a55c;
-  /* 별/하이라이트 */
-  --cream: #fff8e7;
-  /* 유령 안개 */
+  /* 배경 — 심야 네이비에서 거의 검정 가장자리로 */
+  --bg-abyss: #060912;
+  --bg-night: #0a0e27;
+  --bg-deep: #0d1b3e;
+  --bg-neb-1: #243b5e;
+  --bg-neb-2: #3d5a7a;
+
+  /* 별 */
+  --star: #fff8e7;
+
+  /* 골드 — 유일한 강조색 */
+  --gold-1: #c9a55c;
+  --gold-2: #e8d5a0;
+  --gold-3: #d4af6a;
+  --gold-deep: #9c7c3e;
+  --gold-line: #c9a55c;
+
+  /* 텍스트 */
+  --ink-body: #cdb98c; /* 안개 낀 골드 아이보리 */
+  --ink-bright: #f4e9ce; /* 가독용 밝은 아이보리 */
+  --ink-faint: #8a7f63;
+
+  --grad-gold: linear-gradient(135deg, var(--gold-1) 0%, var(--gold-2) 48%, var(--gold-3) 100%);
+
+  --serif: 'Cormorant Garamond', 'Nanum Myeongjo', serif;
+  --kr-serif: 'Nanum Myeongjo', 'Cormorant Garamond', serif;
+  --sans: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+
+  --frame-pad: clamp(14px, 2.4vw, 40px);
+
+  /* ── 기존 뷰 호환 브리지 (board/post/write/admin 가 참조) ── */
+  --navy-900: var(--bg-night);
+  --navy-800: var(--bg-deep);
+  --navy-600: var(--bg-neb-1);
+  --gold: var(--gold-3);
+  --gold-bright: var(--gold-2);
+  --gold-dim: var(--gold-1);
+  --cream: var(--star);
   --fog: rgba(122, 162, 178, 0.08);
-
-  --text: #e9e2cf;
-  --text-dim: rgba(233, 226, 207, 0.62);
-  --line: rgba(212, 175, 106, 0.28);
-
-  --font-head: 'Cormorant Garamond', 'Noto Sans KR', serif;
-  --font-body: 'Noto Sans KR', system-ui, sans-serif;
-
+  --text: var(--ink-bright);
+  --text-dim: var(--ink-faint);
+  --line: rgba(201, 165, 92, 0.28);
+  --font-head: var(--serif);
+  --font-body: var(--sans);
   --space: clamp(1rem, 0.8rem + 1vw, 1.75rem);
-  --radius: 4px;
+  --radius: 2px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --dur: 280ms;
 }
@@ -37,123 +66,258 @@
 html,
 body {
   margin: 0;
+  padding: 0;
   min-height: 100%;
 }
 
 body {
-  font-family: var(--font-body);
+  background: var(--bg-abyss);
+  color: var(--ink-body);
+  font-family: var(--sans);
   font-weight: 300;
-  color: var(--text);
-  background-color: var(--navy-900);
-  /* 별하늘: 중앙 글로우 + 흩뿌린 별빛(캔버스 포트는 후순위, CSS로 정적 표현) */
-  background-image:
-    radial-gradient(ellipse 120% 80% at 50% -10%, var(--navy-600) 0%, var(--navy-800) 38%, var(--navy-900) 78%),
-    radial-gradient(1px 1px at 20% 30%, rgba(255, 248, 231, 0.7) 50%, transparent 50%),
-    radial-gradient(1px 1px at 75% 20%, rgba(255, 248, 231, 0.5) 50%, transparent 50%),
-    radial-gradient(1px 1px at 60% 70%, rgba(212, 175, 106, 0.55) 50%, transparent 50%),
-    radial-gradient(1px 1px at 35% 85%, rgba(255, 248, 231, 0.45) 50%, transparent 50%);
-  background-attachment: fixed;
-  -webkit-font-smoothing: antialiased;
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-head);
-  font-weight: 500;
+  font-family: var(--serif);
+  font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--gold-bright);
+  color: var(--ink-bright);
   line-height: 1.2;
   margin: 0 0 0.4em;
 }
 
 a {
-  color: var(--gold);
+  color: var(--gold-3);
   text-decoration: none;
   transition: color var(--dur) var(--ease);
 }
 a:hover {
-  color: var(--gold-bright);
+  color: var(--gold-2);
 }
 
-.container {
-  width: min(1080px, 92vw);
-  margin-inline: auto;
+/* ── 천체 배경 (CelestialBackdrop 컴포넌트가 렌더) ── */
+#sky {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: radial-gradient(
+    120% 85% at 50% 118%,
+    var(--bg-neb-2) 0%,
+    var(--bg-neb-1) 22%,
+    var(--bg-deep) 48%,
+    var(--bg-night) 70%,
+    var(--bg-abyss) 100%
+  );
+}
+#starfield {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
 
-/* 골드 헤어라인 프레임 카드 (시안 점선 프레임 계승) */
+/* ── 타이포 헬퍼 ── */
+.serif {
+  font-family: var(--serif);
+}
+.gold-text {
+  background: var(--grad-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.label {
+  font-family: var(--serif);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.eyebrow {
+  font-family: var(--serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.muted {
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+   아르데코 골드 프레임 (페이지 외곽 장식)
+   ============================================================ */
+.deco-frame {
+  position: fixed;
+  inset: clamp(10px, 1.5vw, 22px);
+  z-index: 40;
+  pointer-events: none;
+  border: 1px solid rgba(201, 165, 92, 0.55);
+  box-shadow: 0 0 22px rgba(201, 165, 92, 0.07) inset;
+}
+.deco-frame::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 1px dashed rgba(201, 165, 92, 0.3);
+}
+.corner {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  color: var(--gold-2);
+  opacity: 0.9;
+}
+.corner.tl {
+  top: -2px;
+  left: -2px;
+}
+.corner.tr {
+  top: -2px;
+  right: -2px;
+  transform: scaleX(-1);
+}
+.corner.bl {
+  bottom: -2px;
+  left: -2px;
+  transform: scaleY(-1);
+}
+.corner.br {
+  bottom: -2px;
+  right: -2px;
+  transform: scale(-1, -1);
+}
+@media (max-width: 680px) {
+  .deco-frame {
+    inset: 7px;
+  }
+  .deco-frame::before {
+    inset: 6px;
+  }
+  .corner {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* ============================================================
+   레이아웃
+   ============================================================ */
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 56px);
+}
+
+/* ── 섹션 헤딩 ── */
+.sec-head {
+  text-align: center;
+  margin: clamp(30px, 5vh, 60px) 0 clamp(26px, 3.5vh, 40px);
+}
+.sec-head .sh-emblem {
+  width: 30px;
+  height: 30px;
+  color: var(--gold-2);
+  margin: 0 auto 14px;
+}
+.sec-head h2 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: clamp(26px, 3.4vw, 40px);
+  letter-spacing: 0.16em;
+  margin: 0;
+}
+.sec-head .sh-sub {
+  font-family: var(--kr-serif);
+  letter-spacing: 0.28em;
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-top: 12px;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   공통 컴포넌트 (board/post/write/admin 뷰가 사용)
+   ============================================================ */
 .panel {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: linear-gradient(180deg, rgba(36, 59, 94, 0.32), rgba(13, 27, 62, 0.32));
+  background: linear-gradient(160deg, rgba(13, 27, 62, 0.5), rgba(10, 14, 39, 0.35));
   backdrop-filter: blur(2px);
+  position: relative;
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5em;
-  font-family: var(--font-body);
-  font-size: 0.95rem;
-  padding: 0.6em 1.3em;
-  color: var(--navy-900);
-  background: linear-gradient(135deg, var(--gold-bright), var(--gold-dim));
-  border: none;
+  font-family: var(--serif);
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.7em 1.5em;
+  color: var(--gold-2);
+  background: transparent;
+  border: 1px solid rgba(201, 165, 92, 0.55);
   border-radius: var(--radius);
   cursor: pointer;
-  letter-spacing: 0.02em;
-  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
 }
 .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(212, 175, 106, 0.28);
+  background: rgba(201, 165, 92, 0.12);
+  color: var(--ink-bright);
+  box-shadow: 0 0 18px rgba(201, 165, 92, 0.18);
 }
-.btn--ghost {
+.btn--ghost,
+.btn.ghost {
   background: transparent;
-  color: var(--gold);
+  color: var(--gold-1);
   border: 1px solid var(--line);
 }
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
-  transform: none;
   box-shadow: none;
 }
 
-.eyebrow {
-  font-size: 0.72rem;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--gold-dim);
-}
-
-.muted {
-  color: var(--text-dim);
-  font-size: 0.85rem;
-}
-
 input,
-textarea {
+textarea,
+select {
   width: 100%;
-  font-family: var(--font-body);
+  font-family: var(--sans);
   font-size: 1rem;
-  color: var(--text);
-  background: rgba(10, 14, 39, 0.6);
+  font-weight: 300;
+  color: var(--ink-bright);
+  background: rgba(6, 9, 18, 0.6);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.7em 0.9em;
 }
+select {
+  width: auto;
+}
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   outline: none;
-  border-color: var(--gold);
-  box-shadow: 0 0 0 2px rgba(212, 175, 106, 0.18);
+  border-color: var(--gold-3);
+  box-shadow: 0 0 0 2px rgba(201, 165, 92, 0.18);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
 }

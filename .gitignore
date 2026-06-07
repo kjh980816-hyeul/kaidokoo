@@ -20,6 +20,7 @@ frontend/*.local
 _handoff_extracted/
 *.zip
 씨미 선장 팬카페.html
+_sian_source.html
 
 # === IDE / OS ===
 .idea/
