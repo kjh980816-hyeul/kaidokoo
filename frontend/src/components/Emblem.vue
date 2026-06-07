@@ -61,13 +61,23 @@ withDefaults(defineProps<{ title?: string }>(), { title: '' })
       opacity="0.8"
     />
 
-    <!-- 중앙 열쇠구멍 -->
-    <circle cx="50" cy="46" r="4.6" stroke="currentColor" stroke-width="1.1" />
-    <path
-      d="M46.8 49.4 L44.4 60.2 L55.6 60.2 L53.2 49.4"
+    <!-- 중앙 열쇠구멍 (포컬, 굵게) -->
+    <circle
+      cx="50"
+      cy="45.5"
+      r="5.4"
       stroke="currentColor"
-      stroke-width="1.1"
+      stroke-width="1.5"
+      fill="currentColor"
+      fill-opacity="0.12"
+    />
+    <path
+      d="M46.2 48.8 L43.6 61 L56.4 61 L53.8 48.8 Z"
+      stroke="currentColor"
+      stroke-width="1.5"
       stroke-linejoin="round"
+      fill="currentColor"
+      fill-opacity="0.12"
     />
   </svg>
 </template>

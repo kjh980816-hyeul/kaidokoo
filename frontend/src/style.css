@@ -350,19 +350,51 @@ select:focus {
   position: absolute;
   transform-origin: 50% 50%;
 }
-/* 두 레이어를 같은 크기로 반대 방향 회전 → 사각 프레임이 겹쳐 8각 별이 돈다 */
+/* 키홀 엠블럼이 천천히 회전(사각 프레임이 다이아몬드로) + 주변 별 반짝임 */
 .emblem-spin {
+  position: absolute;
   inset: 0;
-  animation: spin 36s linear infinite;
-}
-.emblem-spin-rev {
-  inset: 0;
-  opacity: 0.6;
-  animation: spin 28s linear infinite reverse;
+  transform-origin: 50% 50%;
+  animation: spin 14s linear infinite;
 }
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+.loader-stars {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--gold-2);
+  pointer-events: none;
+  overflow: visible;
+}
+.loader-stars .st {
+  fill: currentColor;
+  filter: drop-shadow(0 0 3px rgba(232, 213, 160, 0.7));
+  animation: tw 2.4s ease-in-out infinite;
+}
+.loader-stars .s1 {
+  animation-delay: -0.3s;
+}
+.loader-stars .s2 {
+  animation-delay: -1s;
+}
+.loader-stars .s3 {
+  animation-delay: -1.7s;
+}
+.loader-stars .s4 {
+  animation-delay: -0.7s;
+}
+@keyframes tw {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
   }
 }
 .loading-text {

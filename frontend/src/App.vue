@@ -53,7 +53,12 @@ function onDevSwitch(e: Event): void {
     <div class="loader-inner">
       <div class="emblem-wrap">
         <span class="emblem-spin"><Emblem /></span>
-        <span class="emblem-spin-rev"><Emblem /></span>
+        <svg class="loader-stars" viewBox="0 0 100 100" aria-hidden="true">
+          <path class="st s1" transform="translate(86 16) scale(1.1)" d="M0 -5 L1 -1 L5 0 L1 1 L0 5 L-1 1 L-5 0 L-1 -1 Z" />
+          <path class="st s2" transform="translate(15 22) scale(0.8)" d="M0 -5 L1 -1 L5 0 L1 1 L0 5 L-1 1 L-5 0 L-1 -1 Z" />
+          <path class="st s3" transform="translate(88 84) scale(0.9)" d="M0 -5 L1 -1 L5 0 L1 1 L0 5 L-1 1 L-5 0 L-1 -1 Z" />
+          <path class="st s4" transform="translate(14 80) scale(1)" d="M0 -5 L1 -1 L5 0 L1 1 L0 5 L-1 1 L-5 0 L-1 -1 Z" />
+        </svg>
       </div>
       <div class="loading-text gold-text">Now Loading</div>
       <div class="loading-sub">별을 읽어 항로를 정하는 중…</div>
