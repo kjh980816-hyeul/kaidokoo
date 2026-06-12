@@ -4,7 +4,6 @@ import app.kaidoku.fancafe.common.ApiException;
 import app.kaidoku.fancafe.grade.dto.GradeCreateRequest;
 import app.kaidoku.fancafe.grade.dto.GradeResponse;
 import app.kaidoku.fancafe.grade.dto.GradeUpdateRequest;
-import app.kaidoku.fancafe.member.Member;
 import app.kaidoku.fancafe.member.MemberRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,11 +61,15 @@ public class GradeService {
     @Transactional
     public void delete(Long gradeId) {
         Grade grade = getGrade(gradeId);
-        Grade fallback = gradeRepository.findFirstByIsDefaultTrue()
-                .filter(d -> !d.getId().equals(gradeId))
-                .orElse(null);
-        for (Member member : memberRepository.findByGrade_Id(gradeId)) {
-            member.assignGrade(fallback);
+        if (grade.isDefault()) {
+            // 기본 등급을 지우면 신규 회원·이전 대상이 갈 곳이 없어진다.
+            throw ApiException.conflict("기본 등급은 삭제할 수 없습니다. 먼저 다른 등급을 기본으로 지정하세요.");
+        }
+        Grade fallback = gradeRepository.findFirstByIsDefaultTrue().orElse(null);
+        if (fallback != null) {
+            memberRepository.reassignGrade(gradeId, fallback);
+        } else {
+            memberRepository.clearGrade(gradeId);
         }
         gradeRepository.delete(grade);
     }
@@ -76,10 +79,8 @@ public class GradeService {
                 .orElseThrow(() -> ApiException.notFound("등급을 찾을 수 없습니다: " + gradeId));
     }
 
-    /** 지정 등급을 제외한 모든 등급의 기본 플래그 해제(기본 등급 단일 보장). */
+    /** 지정 등급을 제외한 모든 등급의 기본 플래그 해제(기본 등급 단일 보장, 단일 SQL). */
     private void clearOtherDefaults(Long keepDefaultId) {
-        gradeRepository.findAll().stream()
-                .filter(g -> g.isDefault() && !g.getId().equals(keepDefaultId))
-                .forEach(g -> g.markDefault(false));
+        gradeRepository.clearDefaultsExcept(keepDefaultId);
     }
 }

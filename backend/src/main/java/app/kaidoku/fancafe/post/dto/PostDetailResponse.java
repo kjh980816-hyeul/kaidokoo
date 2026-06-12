@@ -19,10 +19,15 @@ public record PostDetailResponse(
         LocalDateTime updatedAt
 ) {
     public static PostDetailResponse from(Post p) {
+        return from(p, p.getViewCount());
+    }
+
+    /** 조회수를 DB에서 원자적으로 증가시킨 경우, 응답에 표시할 값을 따로 받는다. */
+    public static PostDetailResponse from(Post p, int viewCount) {
         return new PostDetailResponse(
                 p.getId(), p.getBoard().getCode(), p.getBoard().getNameKr(),
                 p.getTitle(), p.getContent(), p.getAuthor().getNickname(),
-                p.getViewCount(), p.getLikeCount(), p.isPinned(),
+                viewCount, p.getLikeCount(), p.isPinned(),
                 p.getCreatedAt(), p.getUpdatedAt());
     }
 }

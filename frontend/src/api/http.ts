@@ -1,5 +1,5 @@
 // 모든 API 호출의 단일 진입점. 컴포넌트에서 직접 fetch 금지(00-stack: api/ 레이어).
-import { devMemberId } from '@/lib/devSession'
+// 인증은 HttpOnly 세션 쿠키(ADR-0004) — fetch 기본(same-origin)으로 자동 전송된다.
 
 const BASE = '/api'
 
@@ -9,15 +9,26 @@ interface ServerError {
   message: string
 }
 
+/** HTTP 상태코드를 보존하는 에러. 호출부에서 401/403 등을 구분 처리할 수 있다. */
+export class HttpError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'HttpError'
+    this.status = status
+  }
+}
+
 export async function http<T>(path: string, init?: RequestInit): Promise<T> {
+  // init을 먼저 펼쳐야 아래에서 합친 headers가 init.headers에 통째로 덮이지 않는다.
   const res = await fetch(`${BASE}${path}`, {
+    ...init,
     headers: {
-      'Content-Type': 'application/json',
-      // 임시 신원 헤더(ADR-0003). 공개 엔드포인트에선 서버가 무시한다.
-      'X-Member-Id': String(devMemberId.value),
+      // Content-Type은 본문이 있을 때만(GET/DELETE에 붙이지 않는다).
+      ...(init?.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers ?? {}),
     },
-    ...init,
   })
 
   if (!res.ok) {
@@ -28,7 +39,7 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       // 비-JSON 에러 본문은 무시하고 기본 메시지 사용
     }
-    throw new Error(message)
+    throw new HttpError(res.status, message)
   }
 
   if (res.status === 204) {

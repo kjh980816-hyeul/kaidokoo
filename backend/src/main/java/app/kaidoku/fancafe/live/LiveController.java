@@ -26,11 +26,11 @@ public class LiveController {
         return liveService.getPublicStatus();
     }
 
-    /** 라이브 배너 수동 설정(관리자). */
+    /** 라이브 배너 설정(관리자): 모드(AUTO/FORCE_*)·제목·링크·씨미 채널 ID. */
     @PutMapping("/api/admin/live-status")
-    public LiveStatusResponse setManual(@CurrentMember Member admin,
-                                        @Valid @RequestBody LiveUpdateRequest request) {
+    public LiveStatusResponse update(@CurrentMember Member admin,
+                                     @Valid @RequestBody LiveUpdateRequest request) {
         AdminGuard.require(admin);
-        return liveService.setManual(request);
+        return liveService.updateSetting(request);
     }
 }

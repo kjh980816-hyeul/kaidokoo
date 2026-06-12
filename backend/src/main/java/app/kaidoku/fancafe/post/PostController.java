@@ -1,5 +1,7 @@
 package app.kaidoku.fancafe.post;
 
+import app.kaidoku.fancafe.auth.CurrentMember;
+import app.kaidoku.fancafe.member.Member;
 import app.kaidoku.fancafe.post.dto.PostCreateRequest;
 import app.kaidoku.fancafe.post.dto.PostDetailResponse;
 import app.kaidoku.fancafe.post.dto.PostSummaryResponse;
@@ -40,11 +42,12 @@ public class PostController {
         return postService.getDetail(id);
     }
 
-    /** 글 작성. */
+    /** 글 작성(로그인 회원). 작성자는 서버 신원으로 결정한다. */
     @PostMapping("/posts")
-    public ResponseEntity<Map<String, Long>> create(@Valid @RequestBody PostCreateRequest request,
+    public ResponseEntity<Map<String, Long>> create(@CurrentMember Member author,
+                                                     @Valid @RequestBody PostCreateRequest request,
                                                      UriComponentsBuilder uriBuilder) {
-        Long id = postService.create(request);
+        Long id = postService.create(request, author);
         URI location = uriBuilder.path("/api/posts/{id}").buildAndExpand(id).toUri();
         return ResponseEntity.created(location).body(Map.of("id", id));
     }

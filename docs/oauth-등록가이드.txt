@@ -1,0 +1,116 @@
+==========================================================
+ OAuth 앱 등록 가이드 - 네이버 / 카카오 / 구글 (kaii.co.kr)
+==========================================================
+
+공통 주의사항
+- Redirect URI(콜백)는 "완전 일치" 비교. 끝에 / 하나만 달라도 실패.
+- www.kaii.co.kr 쓸 거면 그 변형도 전부 추가 등록해야 함.
+  (권장: www는 nginx에서 kaii.co.kr로 리다이렉트하고 아래 값만 등록)
+
+
+----------------------------------------------------------
+1. 네이버  (developers.naver.com -> Application -> 애플리케이션 등록)
+----------------------------------------------------------
+
+애플리케이션 이름 : 카이도쿠 팬카페
+사용 API          : 네이버 로그인
+제공 정보(스코프) : 별명(닉네임), 프로필 사진  <- 이 2개만 체크, 나머지 해제
+서비스 환경       : PC 웹
+
+서비스 URL :
+  https://kaii.co.kr
+
+네이버 로그인 Callback URL (둘 다 등록, 최대 5개) :
+  https://kaii.co.kr/api/auth/naver/callback
+  http://localhost:5173/api/auth/naver/callback
+
+발급받을 것 : Client ID, Client Secret
+
+[주의] 등록 직후엔 "개발 중" 상태라 등록된 테스터 계정만 로그인 가능.
+       -> 멤버관리 탭에서 본인 네이버 계정을 테스터로 추가하고 개발.
+       -> 오픈 전에 "네이버 로그인 검수 요청" 제출 필요.
+       -> 검수용 동의창 캡처: 이미 동의한 계정은 동의창이 안 뜸.
+          nid.naver.com -> 내정보 -> 연결된 서비스에서 연결 해제하면 다시 뜸.
+
+
+----------------------------------------------------------
+2. 카카오  (developers.kakao.com -> 내 애플리케이션 -> 애플리케이션 추가)
+----------------------------------------------------------
+
+(1) 앱 만들기
+  앱 이름  : 카이도쿠 팬카페
+  회사명   : 본인 이름 또는 카이도쿠 팬카페
+  카테고리 : 커뮤니티/소셜 계열
+
+(2) 앱 설정 > 플랫폼 > Web > 사이트 도메인 (둘 다 등록)
+  https://kaii.co.kr
+  http://localhost:5173
+
+(3) 제품 설정 > 카카오 로그인
+  활성화 : ON
+  Redirect URI (둘 다 등록, 최대 10개) :
+    https://kaii.co.kr/api/auth/kakao/callback
+    http://localhost:5173/api/auth/kakao/callback
+
+(4) 제품 설정 > 카카오 로그인 > 동의항목
+  닉네임      : 필수 동의
+  프로필 사진 : 필수 동의
+  나머지(이메일 등) : 사용 안 함  <- 이메일은 검수 필요해서 1차 제외
+
+(5) 제품 설정 > 카카오 로그인 > 보안
+  Client Secret : 발급 + 활성화 상태 "사용함"
+
+발급받을 것 : REST API 키(앱 설정 > 앱 키, 이게 client_id 역할), Client Secret
+
+[참고] 닉네임/프사만 쓰면 별도 검수 없이 바로 운영 가능. 제일 빨리 끝남.
+
+
+----------------------------------------------------------
+3. 구글  (console.cloud.google.com)
+----------------------------------------------------------
+
+(1) 프로젝트 생성
+  프로젝트 이름 : kaidoku-fancafe
+
+(2) APIs & Services > OAuth 동의 화면(consent screen)
+  User Type            : External(외부)
+  앱 이름              : 카이도쿠 팬카페
+  사용자 지원 이메일   : kjh980816@gmail.com
+  앱 로고              : 넣지 말 것! (로고 올리면 구글 검수 트리거됨)
+  애플리케이션 홈페이지: https://kaii.co.kr
+  개인정보처리방침/약관: 비워둠 (나중에 페이지 생기면 추가)
+  승인된 도메인        : kaii.co.kr   <- 프로토콜 없이 도메인만
+  개발자 연락처 이메일 : kjh980816@gmail.com
+  스코프               : openid, userinfo.profile 만 (email 제외)
+  게시 상태            : 테스트로 만든 뒤 "앱 게시"로 프로덕션 전환
+                         (민감 스코프 없으면 검수 없이 즉시 전환됨)
+
+(3) Credentials > 사용자 인증 정보 만들기 > OAuth 클라이언트 ID
+  애플리케이션 유형 : 웹 애플리케이션
+  이름              : kaidoku-web
+
+  승인된 자바스크립트 원본 (둘 다) :
+    https://kaii.co.kr
+    http://localhost:5173
+
+  승인된 리디렉션 URI (둘 다) :
+    https://kaii.co.kr/api/auth/google/callback
+    http://localhost:5173/api/auth/google/callback
+
+발급받을 것 : Client ID, Client Secret
+
+[주의] 구글은 https 필수 (localhost만 http 허용)
+
+
+----------------------------------------------------------
+발급받은 키 보관 (절대 규칙)
+----------------------------------------------------------
+- 키 6개(ID/Secret x 3)는 서버 환경변수로만 보관.
+- 프론트 코드, git, 로그, 카톡/문서에 평문으로 두지 말 것.
+
+OAUTH_NAVER_CLIENT_ID=
+OAUTH_NAVER_CLIENT_SECRET=
+OAUTH_KAKAO_CLIENT_ID=        (= REST API 키)
+OAUTH_KAKAO_CLIENT_SECRET=
+OAUTH_GOOGLE_CLIENT_ID=
+OAUTH_GOOGLE_CLIENT_SECRET=

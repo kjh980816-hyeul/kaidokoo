@@ -6,9 +6,6 @@ import { createPost } from '@/api/posts'
 const props = defineProps<{ code: string }>()
 const router = useRouter()
 
-// TODO(P2-auth): 인증 도입 전 임시 작성자(개발 시드 회원 id=1). 로그인 후 세션에서 도출.
-const DEV_AUTHOR_ID = 1
-
 const title = ref('')
 const content = ref('')
 const submitting = ref(false)
@@ -24,7 +21,6 @@ async function submit(): Promise<void> {
   try {
     const { id } = await createPost({
       boardCode: props.code,
-      authorId: DEV_AUTHOR_ID,
       title: title.value.trim(),
       content: content.value.trim(),
     })
@@ -59,7 +55,6 @@ async function submit(): Promise<void> {
           {{ submitting ? '띄우는 중…' : '출항' }}
         </button>
       </div>
-      <p class="muted note">※ 로그인 기능(P2) 도입 전이라 임시 작성자로 저장됩니다.</p>
     </form>
   </div>
 </template>

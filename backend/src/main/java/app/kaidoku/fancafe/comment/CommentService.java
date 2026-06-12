@@ -61,7 +61,7 @@ public class CommentService {
         return post;
     }
 
-    /** 대댓글 부모 검증: 존재하고 같은 글의 댓글이어야 한다. 최상위면 null. */
+    /** 대댓글 부모 검증: 존재하고, 같은 글의 댓글이며, 삭제되지 않았어야 한다. 최상위면 null. */
     private Long resolveParentId(Long postId, Long parentId) {
         if (parentId == null) {
             return null;
@@ -70,6 +70,9 @@ public class CommentService {
                 .orElseThrow(() -> ApiException.badRequest("상위 댓글을 찾을 수 없습니다: " + parentId));
         if (!parent.getPost().getId().equals(postId)) {
             throw ApiException.badRequest("상위 댓글이 이 글의 댓글이 아닙니다.");
+        }
+        if (parent.isDeleted()) {
+            throw ApiException.badRequest("삭제된 댓글에는 답글을 달 수 없습니다.");
         }
         return parentId;
     }

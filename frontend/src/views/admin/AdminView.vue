@@ -7,14 +7,16 @@ import {
 } from '@/api/admin'
 import { fetchGrades } from '@/api/grades'
 import { fetchLiveStatus } from '@/api/live'
+import { HttpError } from '@/api/http'
 import type {
-  BoardAdmin, BoardCreateRequest, Grade, GradeInput, LiveStatus,
+  BoardAdmin, BoardCreateRequest, Grade, GradeInput, LiveOverrideMode, LiveStatus,
   MemberAdmin, MemberStatus, Role,
 } from '@/api/types'
 
 type Tab = 'boards' | 'grades' | 'members' | 'live'
 const tab = ref<Tab>('boards')
 const forbidden = ref(false)
+const loadError = ref<string | null>(null)
 const banner = ref<string | null>(null)
 
 const boards = ref<BoardAdmin[]>([])
@@ -38,7 +40,12 @@ function emptyGrade(): GradeInput {
 const gradeForm = ref<GradeInput>(emptyGrade())
 const editingGradeId = ref<number | null>(null)
 
-const liveForm = ref({ live: false, title: '', streamUrl: '' })
+const liveForm = ref({
+  mode: 'FORCE_OFF' as LiveOverrideMode,
+  title: '',
+  streamUrl: '',
+  channelId: '',
+})
 
 function notify(msg: string): void {
   banner.value = msg
@@ -49,21 +56,33 @@ function errOf(e: unknown): string {
 }
 
 async function loadAll(): Promise<void> {
+  forbidden.value = false
+  loadError.value = null
   try {
-    boards.value = await fetchAdminBoards()
-    members.value = await fetchAdminMembers()
-    grades.value = await fetchGrades()
-    live.value = await fetchLiveStatus()
-    if (live.value) {
-      liveForm.value = {
-        live: live.value.live,
-        title: live.value.title ?? '',
-        streamUrl: live.value.streamUrl ?? '',
-      }
+    // 네 호출은 서로 독립 — 병렬 로딩.
+    const [boardList, memberList, gradeList, liveStatus] = await Promise.all([
+      fetchAdminBoards(),
+      fetchAdminMembers(),
+      fetchGrades(),
+      fetchLiveStatus(),
+    ])
+    boards.value = boardList
+    members.value = memberList
+    grades.value = gradeList
+    live.value = liveStatus
+    liveForm.value = {
+      mode: liveStatus.mode,
+      title: liveStatus.title ?? '',
+      streamUrl: liveStatus.streamUrl ?? '',
+      channelId: liveStatus.channelId ?? '',
     }
   } catch (e: unknown) {
-    forbidden.value = true
-    banner.value = errOf(e)
+    // 권한 문제(401/403)일 때만 패널을 잠근다. 일시적 오류는 재시도 가능해야 한다.
+    if (e instanceof HttpError && (e.status === 401 || e.status === 403)) {
+      forbidden.value = true
+    } else {
+      loadError.value = errOf(e)
+    }
   }
 }
 onMounted(loadAll)
@@ -176,11 +195,12 @@ async function onChangeStatus(m: MemberAdmin, status: MemberStatus): Promise<voi
 async function submitLive(): Promise<void> {
   try {
     live.value = await setLiveStatus({
-      live: liveForm.value.live,
+      mode: liveForm.value.mode,
       title: liveForm.value.title.trim() || null,
       streamUrl: liveForm.value.streamUrl.trim() || null,
+      channelId: liveForm.value.channelId.trim() || null,
     })
-    notify('라이브 배너를 저장했습니다.')
+    notify('라이브 배너 설정을 저장했습니다.')
   } catch (e: unknown) {
     notify(errOf(e))
   }
@@ -199,6 +219,11 @@ async function submitLive(): Promise<void> {
     <p v-if="forbidden" class="panel notice">
       관리자(ADMIN) 권한이 필요합니다. 우측 상단 dev 전환에서 <strong>선장(ADMIN)</strong>으로 바꿔주세요.
       <br /><span class="muted">소셜 로그인 도입 전 임시 dev 인증입니다 (ADR-0003).</span>
+    </p>
+
+    <p v-else-if="loadError" class="panel notice">
+      불러오지 못했습니다: {{ loadError }}
+      <br /><button type="button" class="btn" style="margin-top: 0.8rem" @click="loadAll">다시 시도</button>
     </p>
 
     <template v-else>
@@ -270,7 +295,7 @@ async function submitLive(): Promise<void> {
           <div class="form-actions">
             <button type="submit" class="btn">{{ editingGradeId === null ? '추가' : '저장' }}</button>
             <button v-if="editingGradeId !== null" type="button" class="btn ghost"
-              @click="editingGradeId = null; gradeForm = { name: '', sortOrder: 0, badgeColor: '#D4AF6A', isDefault: false }">취소</button>
+              @click="editingGradeId = null; gradeForm = emptyGrade()">취소</button>
           </div>
         </form>
 
@@ -323,10 +348,22 @@ async function submitLive(): Promise<void> {
       <section v-if="tab === 'live'" class="panel section">
         <form class="grid-form" @submit.prevent="submitLive">
           <h2 class="section-title">라이브 배너</h2>
-          <label class="check big"><input v-model="liveForm.live" type="checkbox" /> 지금 방송 중 (배너 ON)</label>
+          <div class="row">
+            <label>모드
+              <select v-model="liveForm.mode">
+                <option value="AUTO">자동 (씨미 폴링)</option>
+                <option value="FORCE_ON">강제 ON</option>
+                <option value="FORCE_OFF">강제 OFF</option>
+              </select>
+            </label>
+            <label>씨미 채널 ID<input v-model="liveForm.channelId" placeholder="@kaiijoku" /></label>
+          </div>
           <label>배너 제목<input v-model="liveForm.title" placeholder="오늘 별바다 항해 방송" /></label>
           <label>방송 링크<input v-model="liveForm.streamUrl" placeholder="https://ci.me/..." /></label>
-          <p class="muted hint">※ 씨미 자동 라이브 감지는 API 키 연동 후 추가됩니다. 지금은 수동 토글입니다.</p>
+          <p class="muted hint">
+            ※ 자동 모드는 채널 ID가 있어야 동작하며 30~60초 간격으로 방송 여부를 감지합니다.
+            제목은 자동 모드에서 방송 제목으로 갱신됩니다.
+          </p>
           <div class="form-actions"><button type="submit" class="btn">저장</button></div>
         </form>
       </section>

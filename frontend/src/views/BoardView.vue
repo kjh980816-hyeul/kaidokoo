@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { fetchBoards } from '@/api/boards'
 import { fetchPosts } from '@/api/posts'
 import type { PostSummary } from '@/api/types'
 import { formatDateTime } from '@/lib/format'
@@ -8,25 +9,34 @@ import { formatDateTime } from '@/lib/format'
 const props = defineProps<{ code: string }>()
 
 const posts = ref<PostSummary[]>([])
+const boardName = ref<string | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
-onMounted(async () => {
+async function load(code: string): Promise<void> {
+  loading.value = true
+  error.value = null
+  posts.value = []
   try {
-    posts.value = await fetchPosts(props.code)
+    const [postList, boards] = await Promise.all([fetchPosts(code), fetchBoards()])
+    posts.value = postList
+    boardName.value = boards.find((b) => b.code === code)?.nameKr ?? null
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : '글을 불러오지 못했습니다'
   } finally {
     loading.value = false
   }
-})
+}
+
+// onMounted만 쓰면 게시판 간 이동(라우트 파라미터만 변경) 시 컴포넌트가 재사용돼 갱신이 안 된다.
+watch(() => props.code, load, { immediate: true })
 </script>
 
 <template>
   <div class="board-head">
     <div>
       <p class="eyebrow">/{{ code }}</p>
-      <h1 class="board-title">게시판</h1>
+      <h1 class="board-title">{{ boardName ?? '게시판' }}</h1>
     </div>
     <RouterLink :to="{ name: 'post-write', params: { code } }" class="btn">글쓰기</RouterLink>
   </div>

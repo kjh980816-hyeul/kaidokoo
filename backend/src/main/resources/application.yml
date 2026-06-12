@@ -15,9 +15,33 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  config:
+    # 로컬 키 파일(gitignored: secrets/). 없으면 무시 — 운영은 환경변수만 사용.
+    import: optional:file:./secrets/local.yml
 
 server:
   port: 8080
+
+# 소셜 로그인(ADR-0004) + 씨미 연동(10-seeme). 시크릿은 환경변수 또는 secrets/local.yml에서만.
+app:
+  auth:
+    # OAuth redirect_uri의 베이스. dev=Vite(5173, /api 프록시), prod=https://kaii.co.kr
+    base-url: ${APP_BASE_URL:http://localhost:5173}
+    # 운영(HTTPS)에서는 true로 (쿠키 Secure 플래그)
+    cookie-secure: ${COOKIE_SECURE:false}
+  oauth:
+    naver:
+      client-id: ${OAUTH_NAVER_CLIENT_ID:}
+      client-secret: ${OAUTH_NAVER_CLIENT_SECRET:}
+    google:
+      client-id: ${OAUTH_GOOGLE_CLIENT_ID:}
+      client-secret: ${OAUTH_GOOGLE_CLIENT_SECRET:}
+    # 카카오는 후속(키 미발급). 키가 비어 있으면 해당 로그인은 404.
+  seeme:
+    base-url: ${SEEME_BASE_URL:https://ci.me}
+    client-id: ${SEEME_CLIENT_ID:}
+    client-secret: ${SEEME_CLIENT_SECRET:}
+    poll-interval-ms: 60000
 
 ---
 # 로컬 개발: 설치 0인 H2 (MySQL 호환 모드). 운영은 MySQL 8 (ADR-0002)

@@ -36,9 +36,9 @@ export interface PostDetail {
   updatedAt: string
 }
 
+// 작성자는 서버가 신원 헤더(추후 세션)에서 도출한다 — 본문에 authorId 없음.
 export interface PostCreateRequest {
   boardCode: string
-  authorId: number
   title: string
   content: string
 }
@@ -75,17 +75,22 @@ export interface Attendance {
   today: string
 }
 
+export type LiveOverrideMode = 'AUTO' | 'FORCE_ON' | 'FORCE_OFF'
+
 export interface LiveStatus {
   live: boolean
   title: string | null
   streamUrl: string | null
+  mode: LiveOverrideMode
+  channelId: string | null
   updatedAt: string | null
 }
 
 export interface LiveUpdateRequest {
-  live: boolean
+  mode: LiveOverrideMode
   title: string | null
   streamUrl: string | null
+  channelId: string | null
 }
 
 export interface Grade {

@@ -6,6 +6,7 @@ import app.kaidoku.fancafe.board.dto.BoardResponse;
 import app.kaidoku.fancafe.board.dto.BoardUpdateRequest;
 import app.kaidoku.fancafe.common.ApiException;
 import app.kaidoku.fancafe.post.PostRepository;
+import app.kaidoku.fancafe.post.PostStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,7 +58,8 @@ public class BoardService {
     @Transactional
     public void deleteBoard(Long boardId) {
         Board board = getById(boardId);
-        if (postRepository.existsByBoard_Id(boardId)) {
+        // 소프트삭제(DELETED)된 글만 남은 게시판은 삭제 가능해야 한다.
+        if (postRepository.existsByBoard_IdAndStatusNot(boardId, PostStatus.DELETED)) {
             throw ApiException.conflict("글이 있는 게시판은 삭제할 수 없습니다. 먼저 글을 정리하거나 숨김 처리하세요.");
         }
         boardRepository.delete(board);

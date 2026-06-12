@@ -2,9 +2,7 @@ package app.kaidoku.fancafe.grade;
 
 import app.kaidoku.fancafe.common.ApiException;
 import app.kaidoku.fancafe.grade.dto.GradeCreateRequest;
-import app.kaidoku.fancafe.member.Member;
 import app.kaidoku.fancafe.member.MemberRepository;
-import app.kaidoku.fancafe.member.Provider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,12 +10,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,30 +43,48 @@ class GradeServiceTest {
 
     @Test
     void create_clearsOtherDefaultsWhenNewIsDefault() {
-        Grade existingDefault = grade(2L, "기존기본", true);
         Grade saved = grade(1L, "새기본", true);
         when(gradeRepository.existsByName("새기본")).thenReturn(false);
         when(gradeRepository.save(any(Grade.class))).thenReturn(saved);
-        when(gradeRepository.findAll()).thenReturn(List.of(existingDefault, saved));
 
         gradeService.create(new GradeCreateRequest("새기본", 1, "#fff", true));
 
-        assertThat(existingDefault.isDefault()).isFalse();
-        assertThat(saved.isDefault()).isTrue();
+        verify(gradeRepository).clearDefaultsExcept(1L);
     }
 
     @Test
     void delete_reassignsMembersToDefaultGrade() {
         Grade target = grade(1L, "삭제대상", false);
         Grade fallback = grade(2L, "기본", true);
-        Member member = Member.create(Provider.GOOGLE, "u1", "선원");
-        member.assignGrade(target);
         when(gradeRepository.findById(1L)).thenReturn(Optional.of(target));
         when(gradeRepository.findFirstByIsDefaultTrue()).thenReturn(Optional.of(fallback));
-        when(memberRepository.findByGrade_Id(1L)).thenReturn(List.of(member));
 
         gradeService.delete(1L);
 
-        assertThat(member.getGrade()).isEqualTo(fallback);
+        verify(memberRepository).reassignGrade(1L, fallback);
+        verify(gradeRepository).delete(target);
+    }
+
+    @Test
+    void delete_clearsGradeWhenNoDefaultExists() {
+        Grade target = grade(1L, "삭제대상", false);
+        when(gradeRepository.findById(1L)).thenReturn(Optional.of(target));
+        when(gradeRepository.findFirstByIsDefaultTrue()).thenReturn(Optional.empty());
+
+        gradeService.delete(1L);
+
+        verify(memberRepository).clearGrade(1L);
+        verify(gradeRepository).delete(target);
+    }
+
+    @Test
+    void delete_blockedForDefaultGrade() {
+        Grade target = grade(1L, "기본등급", true);
+        when(gradeRepository.findById(1L)).thenReturn(Optional.of(target));
+
+        assertThatThrownBy(() -> gradeService.delete(1L))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("기본 등급");
+        verify(gradeRepository, never()).delete(any(Grade.class));
     }
 }

@@ -29,20 +29,20 @@ public class LikeService {
         return new LikeResponse(liked, post.getLikeCount());
     }
 
-    /** 좋아요 토글. 이미 눌렀으면 취소(카운트 -1), 아니면 추가(+1). */
+    /** 좋아요 토글. 이미 눌렀으면 취소(카운트 -1), 아니면 추가(+1). 카운트는 DB에서 원자적으로 증감. */
     @Transactional
     public LikeResponse toggle(Long postId, Member member) {
         Post post = getActivePost(postId);
         return postLikeRepository.findByMember_IdAndPost_Id(member.getId(), post.getId())
                 .map(existing -> {
                     postLikeRepository.delete(existing);
-                    post.decreaseLikeCount();
-                    return new LikeResponse(false, post.getLikeCount());
+                    postRepository.decrementLikeCount(post.getId());
+                    return new LikeResponse(false, Math.max(0, post.getLikeCount() - 1));
                 })
                 .orElseGet(() -> {
                     postLikeRepository.save(PostLike.create(member, post));
-                    post.increaseLikeCount();
-                    return new LikeResponse(true, post.getLikeCount());
+                    postRepository.incrementLikeCount(post.getId());
+                    return new LikeResponse(true, post.getLikeCount() + 1);
                 });
     }
 

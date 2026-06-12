@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRouter } from 'vue-router'
 import CelestialBackdrop from '@/components/CelestialBackdrop.vue'
 import Emblem from '@/components/Emblem.vue'
-import { devMemberId, setDevMemberId } from '@/lib/devSession'
+import { fetchMe, logout, loginUrl, type Me } from '@/api/auth'
 
 const LOADER_MS = 2200 // 로딩 인트로 노출 시간(시안 톤)
 const FADE_MS = 1000 // #loader.gone opacity 트랜지션 길이와 일치
@@ -37,13 +37,31 @@ function replayLoader(): void {
   runLoader()
 }
 
-onMounted(runLoader)
+// 로그인 상태(세션 쿠키 기반, ADR-0004).
+const router = useRouter()
+const me = ref<Me | null>(null)
 
-// 임시 dev 신원 전환(ADR-0003). 시드: 1=개발선원(MEMBER), 2=선장(ADMIN).
-// ⚠️ 로그인 도입 시 이 전환 UI와 devSession을 제거한다.
-function onDevSwitch(e: Event): void {
-  setDevMemberId(Number((e.target as HTMLSelectElement).value))
+async function loadMe(): Promise<void> {
+  try {
+    me.value = await fetchMe()
+  } catch {
+    me.value = { authenticated: false }
+  }
 }
+
+async function onLogout(): Promise<void> {
+  try {
+    await logout()
+  } finally {
+    me.value = { authenticated: false }
+    await router.push('/')
+  }
+}
+
+onMounted(() => {
+  runLoader()
+  void loadMe()
+})
 </script>
 
 <template>
@@ -77,14 +95,17 @@ function onDevSwitch(e: Event): void {
           <RouterLink to="/">홈</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#boards' }">게시판</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#attend' }">출석</RouterLink>
-          <RouterLink to="/admin">관리자</RouterLink>
-          <label class="dev-switch" title="임시 dev 로그인 (소셜 로그인 도입 전)">
-            <span aria-hidden="true">⚓</span>
-            <select :value="devMemberId" @change="onDevSwitch">
-              <option :value="1">개발선원</option>
-              <option :value="2">선장(ADMIN)</option>
-            </select>
-          </label>
+          <RouterLink v-if="me?.role === 'ADMIN'" to="/admin">관리자</RouterLink>
+          <span class="auth">
+            <template v-if="me?.authenticated">
+              <span class="auth-name">{{ me.nickname }}</span>
+              <button type="button" class="auth-btn" @click="onLogout">로그아웃</button>
+            </template>
+            <template v-else-if="me">
+              <a class="auth-btn" :href="loginUrl('naver')">네이버 로그인</a>
+              <a class="auth-btn" :href="loginUrl('google')">구글 로그인</a>
+            </template>
+          </span>
         </nav>
       </header>
 
@@ -185,18 +206,37 @@ function onDevSwitch(e: Event): void {
 .nav a:hover::after {
   width: 100%;
 }
-.dev-switch {
+.auth {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.74rem;
-  color: var(--gold-1);
+  gap: 0.7rem;
   text-transform: none;
-  letter-spacing: 0;
+  letter-spacing: 0.04em;
 }
-.dev-switch select {
-  padding: 0.22rem 0.4rem;
-  font-size: 0.74rem;
+.auth-name {
+  color: var(--gold-2);
+  font-size: 0.82rem;
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.auth-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-body);
+  font-family: var(--serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  padding: 0.3rem 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.3s, border-color 0.3s;
+}
+.auth-btn:hover {
+  color: var(--gold-2);
+  border-color: var(--gold-1);
 }
 
 .site-main {

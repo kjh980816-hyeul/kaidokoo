@@ -44,7 +44,7 @@ class BoardPostIntegrationTest {
         Member author = memberRepository.save(Member.create(Provider.GOOGLE, "itest-1", "통합선원"));
 
         Long postId = postService.create(
-                new PostCreateRequest(board.getCode(), author.getId(), "통합 제목", "통합 본문"));
+                new PostCreateRequest(board.getCode(), "통합 제목", "통합 본문"), author);
 
         List<PostSummaryResponse> list = postService.listByBoard(board.getCode());
         assertThat(list).extracting(PostSummaryResponse::title).contains("통합 제목");

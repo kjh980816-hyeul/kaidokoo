@@ -28,3 +28,6 @@ _sian_source.html
 *.iml
 .DS_Store
 Thumbs.db
+
+# API 키 메모 (절대 커밋 금지)
+각종 api 키.txt

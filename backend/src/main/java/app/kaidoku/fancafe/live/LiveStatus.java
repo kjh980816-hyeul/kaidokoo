@@ -42,11 +42,20 @@ public class LiveStatus {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    /** 관리자 수동 설정. on=true면 강제 ON(제목/링크 노출), false면 강제 OFF. */
-    public void applyManual(boolean on, String title, String streamUrl) {
-        this.overrideMode = on ? LiveOverrideMode.FORCE_ON : LiveOverrideMode.FORCE_OFF;
+    /** 관리자 설정. AUTO면 씨미 폴링 결과를 따르고, FORCE_*는 수동 오버라이드. */
+    public void applySetting(LiveOverrideMode mode, String title, String streamUrl) {
+        this.overrideMode = mode;
         this.title = title;
         this.streamUrl = streamUrl;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /** 씨미 폴링 결과 반영(AUTO 모드의 source of truth). 제목은 방송 제목이 있을 때만 갱신. */
+    public void applyPoll(boolean live, String polledTitle) {
+        this.live = live;
+        if (polledTitle != null && !polledTitle.isBlank()) {
+            this.title = polledTitle;
+        }
         this.updatedAt = LocalDateTime.now();
     }
 

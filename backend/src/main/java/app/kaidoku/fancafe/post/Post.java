@@ -79,20 +79,6 @@ public class Post {
         return p;
     }
 
-    public void increaseViewCount() {
-        this.viewCount++;
-    }
-
-    public void increaseLikeCount() {
-        this.likeCount++;
-    }
-
-    public void decreaseLikeCount() {
-        if (this.likeCount > 0) {
-            this.likeCount--;
-        }
-    }
-
     public boolean isDeleted() {
         return this.status == PostStatus.DELETED;
     }

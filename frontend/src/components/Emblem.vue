@@ -101,4 +101,10 @@ withDefaults(defineProps<{ title?: string }>(), { title: '' })
     opacity: 1;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  .tw {
+    animation: none;
+    opacity: 0.7;
+  }
+}
 </style>

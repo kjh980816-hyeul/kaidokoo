@@ -12,6 +12,7 @@ import app.kaidoku.fancafe.common.Role;
 import app.kaidoku.fancafe.grade.GradeService;
 import app.kaidoku.fancafe.grade.dto.GradeCreateRequest;
 import app.kaidoku.fancafe.like.LikeService;
+import app.kaidoku.fancafe.live.LiveOverrideMode;
 import app.kaidoku.fancafe.live.LiveService;
 import app.kaidoku.fancafe.live.dto.LiveStatusResponse;
 import app.kaidoku.fancafe.live.dto.LiveUpdateRequest;
@@ -56,7 +57,7 @@ class CommunityIntegrationTest {
         Board board = boardRepository.save(
                 Board.create("c-" + author.getProviderUserId(), "테스트", null, null, 1,
                         BoardType.GENERAL, Role.MEMBER));
-        return postService.create(new PostCreateRequest(board.getCode(), author.getId(), "제목", "본문"));
+        return postService.create(new PostCreateRequest(board.getCode(), "제목", "본문"), author);
     }
 
     @Test
@@ -108,13 +109,29 @@ class CommunityIntegrationTest {
 
     @Test
     void live_manualToggleReflectsInPublicStatus() {
-        liveService.setManual(new LiveUpdateRequest(true, "오늘 별바다 항해 방송", "https://example.test/live"));
+        liveService.updateSetting(new LiveUpdateRequest(
+                LiveOverrideMode.FORCE_ON, "오늘 별바다 항해 방송", "https://example.test/live", "@kaiijoku"));
 
         LiveStatusResponse on = liveService.getPublicStatus();
         assertThat(on.live()).isTrue();
         assertThat(on.title()).isEqualTo("오늘 별바다 항해 방송");
+        assertThat(on.channelId()).isEqualTo("@kaiijoku");
 
-        liveService.setManual(new LiveUpdateRequest(false, null, null));
+        liveService.updateSetting(new LiveUpdateRequest(LiveOverrideMode.FORCE_OFF, null, null, null));
+        assertThat(liveService.getPublicStatus().live()).isFalse();
+    }
+
+    @Test
+    void live_autoModeFollowsPollResult() {
+        liveService.updateSetting(new LiveUpdateRequest(LiveOverrideMode.AUTO, null, null, "@kaiijoku"));
+        assertThat(liveService.getAutoPollChannelId()).isEqualTo("@kaiijoku");
+
+        liveService.applyPoll(true, "폴링된 방송 제목");
+        LiveStatusResponse on = liveService.getPublicStatus();
+        assertThat(on.live()).isTrue();
+        assertThat(on.title()).isEqualTo("폴링된 방송 제목");
+
+        liveService.applyPoll(false, null);
         assertThat(liveService.getPublicStatus().live()).isFalse();
     }
 }

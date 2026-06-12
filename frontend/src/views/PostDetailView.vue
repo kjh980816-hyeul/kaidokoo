@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { fetchPost } from '@/api/posts'
 import { fetchLikeStatus, toggleLike } from '@/api/likes'
@@ -16,6 +16,7 @@ const error = ref<string | null>(null)
 
 const like = ref<LikeStatus>({ liked: false, likeCount: 0 })
 const likeBusy = ref(false)
+const likeError = ref<string | null>(null)
 
 const comments = ref<Comment[]>([])
 const newComment = ref('')
@@ -34,7 +35,15 @@ async function loadComments(): Promise<void> {
   comments.value = await fetchComments(postId.value)
 }
 
-onMounted(async () => {
+async function load(): Promise<void> {
+  loading.value = true
+  error.value = null
+  post.value = null
+  comments.value = []
+  like.value = { liked: false, likeCount: 0 }
+  likeError.value = null
+  commentError.value = null
+  replyTo.value = null
   try {
     post.value = await fetchPost(postId.value)
     const [likeStatus] = await Promise.all([fetchLikeStatus(postId.value), loadComments()])
@@ -44,15 +53,19 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+// onMounted만 쓰면 글 간 이동(라우트 파라미터만 변경) 시 컴포넌트가 재사용돼 이전 글이 남는다.
+watch(() => props.id, load, { immediate: true })
 
 async function onToggleLike(): Promise<void> {
   if (likeBusy.value) return
   likeBusy.value = true
+  likeError.value = null
   try {
     like.value = await toggleLike(postId.value)
   } catch (e: unknown) {
-    commentError.value = e instanceof Error ? e.message : '좋아요 처리에 실패했습니다'
+    likeError.value = e instanceof Error ? e.message : '좋아요 처리에 실패했습니다'
   } finally {
     likeBusy.value = false
   }
@@ -123,11 +136,12 @@ function toggleReply(commentId: number): void {
           좋아요 <strong>{{ like.likeCount }}</strong>
         </button>
       </div>
+      <p v-if="likeError" class="error like-error">{{ likeError }}</p>
     </article>
 
     <section class="comments panel" aria-labelledby="comments-heading">
       <h2 id="comments-heading" class="comments-title">
-        댓글 <span class="count">{{ comments.length }}</span>
+        댓글 <span class="count">{{ comments.filter((c) => !c.deleted).length }}</span>
       </h2>
 
       <p v-if="commentError" class="error">{{ commentError }}</p>
@@ -238,6 +252,11 @@ function toggleReply(commentId: number): void {
 .like-btn:disabled {
   opacity: 0.6;
   cursor: default;
+}
+.like-error {
+  text-align: center;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
 }
 
 .comments {

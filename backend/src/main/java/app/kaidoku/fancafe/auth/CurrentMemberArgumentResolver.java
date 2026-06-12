@@ -2,8 +2,9 @@ package app.kaidoku.fancafe.auth;
 
 import app.kaidoku.fancafe.common.ApiException;
 import app.kaidoku.fancafe.member.Member;
-import app.kaidoku.fancafe.member.MemberRepository;
 import app.kaidoku.fancafe.member.MemberStatus;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.MethodParameter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -14,21 +15,17 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 /**
  * {@code @CurrentMember} 파라미터를 해석한다.
  *
- * <p><b>임시 인증(dev stand-in).</b> 소셜 로그인 도입 전까지 {@code X-Member-Id} 헤더의 회원 id로
- * 신원을 해석한다. 헤더는 위조 가능하므로 이는 운영 보안이 아니라 인증 전 개발용 발판이다.
- * 단, 권한(role)·상태(status)는 <b>항상 DB 값으로 서버에서 재검증</b>하므로(클라이언트 신뢰 X)
- * 인증이 들어와도 이 검증 로직은 그대로 두고 신원 출처만 세션으로 바꾸면 된다. (ADR-0003)
+ * <p>세션 쿠키({@link AuthController#SESSION_COOKIE}) → member_session → 회원(ADR-0004).
+ * 권한(role)·상태(status)는 항상 DB 값으로 서버에서 재검증한다(클라이언트 신뢰 X).
+ * (구 X-Member-Id 헤더 임시 신원은 소셜 로그인 도입으로 제거 — ADR-0003 종료)
  */
 @Component
 public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResolver {
 
-    /** 임시 신원 헤더. 인증 도입 시 제거 대상(TODO P2-auth). */
-    public static final String MEMBER_ID_HEADER = "X-Member-Id";
+    private final MemberSessionRepository sessionRepository;
 
-    private final MemberRepository memberRepository;
-
-    public CurrentMemberArgumentResolver(MemberRepository memberRepository) {
-        this.memberRepository = memberRepository;
+    public CurrentMemberArgumentResolver(MemberSessionRepository sessionRepository) {
+        this.sessionRepository = sessionRepository;
     }
 
     @Override
@@ -45,26 +42,40 @@ public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResol
         CurrentMember annotation = parameter.getParameterAnnotation(CurrentMember.class);
         boolean required = annotation == null || annotation.required();
 
-        String raw = webRequest.getHeader(MEMBER_ID_HEADER);
-        if (raw == null || raw.isBlank()) {
-            if (required) {
-                throw ApiException.unauthorized("로그인이 필요합니다.");
-            }
-            return null;
+        String token = readSessionToken(webRequest);
+        if (token == null || token.isBlank()) {
+            return requireOrNull(required);
         }
 
-        long memberId;
-        try {
-            memberId = Long.parseLong(raw.trim());
-        } catch (NumberFormatException e) {
-            throw ApiException.unauthorized("로그인이 필요합니다.");
+        MemberSession session = sessionRepository.findById(token).orElse(null);
+        if (session == null || session.isExpired()) {
+            return requireOrNull(required);
         }
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> ApiException.unauthorized("로그인이 필요합니다."));
+        Member member = session.getMember();
         if (member.getStatus() != MemberStatus.ACTIVE) {
             throw ApiException.forbidden("이용이 제한된 계정입니다.");
         }
         return member;
+    }
+
+    private static Object requireOrNull(boolean required) {
+        if (required) {
+            throw ApiException.unauthorized("로그인이 필요합니다.");
+        }
+        return null;
+    }
+
+    private static String readSessionToken(NativeWebRequest webRequest) {
+        HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);
+        if (request == null || request.getCookies() == null) {
+            return null;
+        }
+        for (Cookie cookie : request.getCookies()) {
+            if (AuthController.SESSION_COOKIE.equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        return null;
     }
 }
