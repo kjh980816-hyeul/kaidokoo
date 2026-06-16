@@ -47,7 +47,7 @@ public class CurrentMemberArgumentResolver implements HandlerMethodArgumentResol
             return requireOrNull(required);
         }
 
-        MemberSession session = sessionRepository.findById(token).orElse(null);
+        MemberSession session = sessionRepository.findWithMemberByToken(token).orElse(null);
         if (session == null || session.isExpired()) {
             return requireOrNull(required);
         }
