@@ -16,6 +16,11 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      // 업로드 파일(아바타)도 개발 중엔 백엔드가 서빙 → 프록시. 운영은 Nginx가 직접 서빙.
+      '/uploads': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })

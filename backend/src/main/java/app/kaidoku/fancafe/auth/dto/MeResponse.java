@@ -8,13 +8,15 @@ public record MeResponse(
         boolean authenticated,
         Long id,
         String nickname,
+        String avatarUrl,
         Role role
 ) {
     public static MeResponse of(Member member) {
-        return new MeResponse(true, member.getId(), member.getNickname(), member.getRole());
+        return new MeResponse(
+                true, member.getId(), member.getNickname(), member.getAvatarUrl(), member.getRole());
     }
 
     public static MeResponse guest() {
-        return new MeResponse(false, null, null, null);
+        return new MeResponse(false, null, null, null, null);
     }
 }

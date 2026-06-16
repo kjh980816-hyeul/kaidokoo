@@ -6,6 +6,7 @@ export interface Me {
   authenticated: boolean
   id?: number | null
   nickname?: string | null
+  avatarUrl?: string | null
   role?: Role | null
 }
 

@@ -3,7 +3,8 @@ import { onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import CelestialBackdrop from '@/components/CelestialBackdrop.vue'
 import Emblem from '@/components/Emblem.vue'
-import { fetchMe, logout, loginUrl, type Me } from '@/api/auth'
+import { logout, loginUrl } from '@/api/auth'
+import { useMe } from '@/composables/useMe'
 
 const LOADER_MS = 2200 // 로딩 인트로 노출 시간(시안 톤)
 const FADE_MS = 1000 // #loader.gone opacity 트랜지션 길이와 일치
@@ -37,23 +38,15 @@ function replayLoader(): void {
   runLoader()
 }
 
-// 로그인 상태(세션 쿠키 기반, ADR-0004).
+// 로그인 상태(세션 쿠키 기반, ADR-0004). 전역 공유 ref(헤더·마이페이지 공통).
 const router = useRouter()
-const me = ref<Me | null>(null)
-
-async function loadMe(): Promise<void> {
-  try {
-    me.value = await fetchMe()
-  } catch {
-    me.value = { authenticated: false }
-  }
-}
+const { me, load: loadMe, clear: clearMe } = useMe()
 
 async function onLogout(): Promise<void> {
   try {
     await logout()
   } finally {
-    me.value = { authenticated: false }
+    clearMe()
     await router.push('/')
   }
 }
@@ -98,7 +91,11 @@ onMounted(() => {
           <RouterLink v-if="me?.role === 'ADMIN'" to="/admin">관리자</RouterLink>
           <span class="auth">
             <template v-if="me?.authenticated">
-              <span class="auth-name">{{ me.nickname }}</span>
+              <RouterLink to="/me" class="auth-me" title="마이페이지">
+                <img v-if="me.avatarUrl" :src="me.avatarUrl" alt="" class="auth-avatar" />
+                <span v-else class="auth-avatar auth-avatar--blank" aria-hidden="true"></span>
+                <span class="auth-name">{{ me.nickname }}</span>
+              </RouterLink>
               <button type="button" class="auth-btn" @click="onLogout">로그아웃</button>
             </template>
             <template v-else-if="me">
@@ -213,6 +210,24 @@ onMounted(() => {
   text-transform: none;
   letter-spacing: 0.04em;
 }
+.auth-me {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: inherit;
+}
+.auth-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--gold-1);
+  flex: none;
+  background: var(--navy-900, #0a0e27);
+}
+.auth-avatar--blank {
+  background: radial-gradient(circle at 50% 40%, var(--neb, #243b5e), var(--navy-900, #0a0e27));
+}
 .auth-name {
   color: var(--gold-2);
   font-size: 0.82rem;
@@ -220,6 +235,10 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color 0.3s;
+}
+.auth-me:hover .auth-name {
+  color: var(--ink-bright);
 }
 .auth-btn {
   background: transparent;

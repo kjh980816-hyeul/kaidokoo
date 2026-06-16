@@ -18,12 +18,20 @@ spring:
   config:
     # 로컬 키 파일(gitignored: secrets/). 없으면 무시 — 운영은 환경변수만 사용.
     import: optional:file:./secrets/local.yml
+  servlet:
+    multipart:
+      # 아바타 업로드 한도(서비스단 2MB 검증 + 여유). 초과 시 표준 에러로 매핑.
+      max-file-size: 5MB
+      max-request-size: 5MB
 
 server:
   port: 8080
 
 # 소셜 로그인(ADR-0004) + 씨미 연동(10-seeme). 시크릿은 환경변수 또는 secrets/local.yml에서만.
 app:
+  upload:
+    # 업로드 저장 위치. 운영은 환경변수 UPLOAD_DIR. Nginx가 /uploads/로 정적 서빙한다.
+    dir: ${UPLOAD_DIR:uploads}
   auth:
     # OAuth redirect_uri의 베이스. dev=Vite(5173, /api 프록시), prod=https://kaii.co.kr
     base-url: ${APP_BASE_URL:http://localhost:5173}

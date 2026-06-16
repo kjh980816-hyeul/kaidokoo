@@ -53,6 +53,10 @@ public class Member {
     @JoinColumn(name = "grade_id")
     private Grade grade;
 
+    /** 프로필 사진(아바타) URL. 회원이 직접 업로드. 미설정 시 null. */
+    @Column(name = "avatar_url", length = 300)
+    private String avatarUrl;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -69,6 +73,16 @@ public class Member {
 
     public void assignGrade(Grade grade) {
         this.grade = grade;
+    }
+
+    /** 닉네임 변경(본인). 검증은 서비스에서 수행한 값만 들어온다. */
+    public void changeNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    /** 프로필 사진 URL 변경(본인). null이면 기본 아바타로 표시된다. */
+    public void changeAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public void changeRole(Role role) {

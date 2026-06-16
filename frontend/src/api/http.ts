@@ -21,12 +21,14 @@ export class HttpError extends Error {
 }
 
 export async function http<T>(path: string, init?: RequestInit): Promise<T> {
+  // FormData(파일 업로드)는 브라우저가 multipart 경계를 직접 잡아야 하므로 Content-Type을 지정하지 않는다.
+  const isJsonBody = init?.body !== undefined && !(init.body instanceof FormData)
   // init을 먼저 펼쳐야 아래에서 합친 headers가 init.headers에 통째로 덮이지 않는다.
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
-      // Content-Type은 본문이 있을 때만(GET/DELETE에 붙이지 않는다).
-      ...(init?.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      // Content-Type은 JSON 본문이 있을 때만(GET/DELETE·FormData엔 붙이지 않는다).
+      ...(isJsonBody ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers ?? {}),
     },
   })
