@@ -1,18 +1,45 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
-import { fetchPost } from '@/api/posts'
+import { RouterLink, useRouter } from 'vue-router'
+import { fetchPost, deletePost } from '@/api/posts'
 import { fetchLikeStatus, toggleLike } from '@/api/likes'
 import { fetchComments, createComment, deleteComment } from '@/api/comments'
 import type { Comment, LikeStatus, PostDetail } from '@/api/types'
+import { useMe } from '@/composables/useMe'
 import { formatDateTime } from '@/lib/format'
 
 const props = defineProps<{ id: string }>()
 const postId = computed(() => Number(props.id))
+const router = useRouter()
+const { me } = useMe()
 
 const post = ref<PostDetail | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+const deleting = ref(false)
+
+// 작성자 본인 또는 ADMIN에게만 삭제 버튼 노출(실제 권한은 서버 재검증).
+const canDelete = computed(
+  () =>
+    !!post.value &&
+    me.value?.authenticated === true &&
+    (me.value.id === post.value.authorId || me.value.role === 'ADMIN'),
+)
+
+async function onDeletePost(): Promise<void> {
+  if (!post.value || deleting.value) return
+  if (!confirm('이 글을 삭제할까요? 되돌릴 수 없습니다.')) return
+  deleting.value = true
+  try {
+    const boardCode = post.value.boardCode
+    await deletePost(post.value.id)
+    await router.push({ name: 'board', params: { code: boardCode } })
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : '글을 삭제하지 못했습니다.'
+  } finally {
+    deleting.value = false
+  }
+}
 
 const like = ref<LikeStatus>({ liked: false, likeCount: 0 })
 const likeBusy = ref(false)
@@ -122,8 +149,17 @@ function toggleReply(commentId: number): void {
         <p class="post-meta muted">
           {{ post.authorNickname }} · {{ formatDateTime(post.createdAt) }} · 조회 {{ post.viewCount }}
         </p>
+        <div v-if="canDelete" class="post-tools">
+          <button type="button" class="link-btn danger" :disabled="deleting" @click="onDeletePost">
+            {{ deleting ? '삭제 중…' : '글 삭제' }}
+          </button>
+        </div>
       </header>
       <div class="post-body">{{ post.content }}</div>
+
+      <div v-if="post.imageUrls.length" class="post-images">
+        <img v-for="(url, i) in post.imageUrls" :key="url" :src="url" :alt="`첨부 이미지 ${i + 1}`" />
+      </div>
 
       <div class="like-bar">
         <button
@@ -218,10 +254,27 @@ function toggleReply(commentId: number): void {
   font-size: clamp(1.8rem, 1rem + 3vw, 2.6rem);
   font-style: italic;
 }
+.post-tools {
+  margin-top: 0.8rem;
+  display: flex;
+  justify-content: flex-end;
+}
 .post-body {
   white-space: pre-wrap;
   line-height: 1.9;
   font-size: 1.05rem;
+}
+.post-images {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.6rem;
+}
+.post-images img {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  display: block;
 }
 .like-bar {
   margin-top: 2rem;

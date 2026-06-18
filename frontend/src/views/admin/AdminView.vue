@@ -9,9 +9,21 @@ import { fetchGrades } from '@/api/grades'
 import { fetchLiveStatus } from '@/api/live'
 import { HttpError } from '@/api/http'
 import type {
-  BoardAdmin, BoardCreateRequest, Grade, GradeInput, LiveOverrideMode, LiveStatus,
+  BoardAdmin, BoardCreateRequest, BoardType, Grade, GradeInput, LiveOverrideMode, LiveStatus,
   MemberAdmin, MemberStatus, Role,
 } from '@/api/types'
+
+// 게시판 형식 라벨(목록 렌더링 방식). 글 데이터는 동일하고 표시만 달라진다.
+const BOARD_TYPES: { value: BoardType; label: string }[] = [
+  { value: 'GENERAL', label: '일반 (목록)' },
+  { value: 'GALLERY', label: '갤러리 (이미지 그리드)' },
+  { value: 'CARD', label: '카드 (썸네일+요약)' },
+  { value: 'VIDEO', label: '영상 (16:9 썸네일)' },
+  { value: 'LETTER', label: '편지 (편지지 카드)' },
+  { value: 'RANK', label: '랭킹 (좋아요순)' },
+]
+const boardTypeLabel = (t: BoardType): string =>
+  BOARD_TYPES.find((x) => x.value === t)?.label ?? t
 
 type Tab = 'boards' | 'grades' | 'members' | 'live'
 const tab = ref<Tab>('boards')
@@ -248,8 +260,10 @@ async function submitLive(): Promise<void> {
           <div class="row">
             <label>설명<input v-model="boardForm.description" placeholder="선원들의 자유 게시판" /></label>
             <label>정렬<input v-model.number="boardForm.sortOrder" type="number" /></label>
-            <label>타입
-              <select v-model="boardForm.type"><option value="GENERAL">일반</option><option value="GALLERY">갤러리</option></select>
+            <label>형식
+              <select v-model="boardForm.type">
+                <option v-for="t in BOARD_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
+              </select>
             </label>
             <label>작성권한
               <select v-model="boardForm.writeRole"><option value="MEMBER">회원</option><option value="ADMIN">관리자</option></select>
@@ -265,13 +279,13 @@ async function submitLive(): Promise<void> {
         </form>
 
         <table class="data">
-          <thead><tr><th>정렬</th><th>이름</th><th>코드</th><th>타입</th><th>노출</th><th></th></tr></thead>
+          <thead><tr><th>정렬</th><th>이름</th><th>코드</th><th>형식</th><th>노출</th><th></th></tr></thead>
           <tbody>
             <tr v-for="b in boards" :key="b.id">
               <td>{{ b.sortOrder }}</td>
               <td>{{ b.nameKr }}</td>
               <td class="mono">{{ b.code }}</td>
-              <td>{{ b.type === 'GALLERY' ? '갤러리' : '일반' }}</td>
+              <td>{{ boardTypeLabel(b.type) }}</td>
               <td>{{ b.visible ? '✓' : '–' }}</td>
               <td class="actions">
                 <button class="link-btn" @click="editBoard(b)">수정</button>

@@ -6,14 +6,16 @@ import app.kaidoku.fancafe.post.dto.PostCreateRequest;
 import app.kaidoku.fancafe.post.dto.PostDetailResponse;
 import app.kaidoku.fancafe.post.dto.PostSummaryResponse;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -50,5 +52,19 @@ public class PostController {
         Long id = postService.create(request, author);
         URI location = uriBuilder.path("/api/posts/{id}").buildAndExpand(id).toUri();
         return ResponseEntity.created(location).body(Map.of("id", id));
+    }
+
+    /** 게시글 첨부 이미지 업로드(로그인 회원). 저장된 공개 URL을 돌려준다. */
+    @PostMapping("/posts/images")
+    public Map<String, String> uploadImage(@CurrentMember Member member,
+                                           @RequestParam("file") MultipartFile file) {
+        return Map.of("url", postService.storeImage(file));
+    }
+
+    /** 글 삭제(작성자 본인 또는 ADMIN). 권한은 서비스에서 재검증한다. */
+    @DeleteMapping("/posts/{id}")
+    public ResponseEntity<Void> delete(@CurrentMember Member member, @PathVariable Long id) {
+        postService.delete(id, member);
+        return ResponseEntity.noContent().build();
     }
 }

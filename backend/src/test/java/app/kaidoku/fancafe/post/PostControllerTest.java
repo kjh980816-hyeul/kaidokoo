@@ -42,8 +42,8 @@ class PostControllerTest {
     @Test
     void detail_returnsJson() throws Exception {
         when(postService.getDetail(eq(1L))).thenReturn(new PostDetailResponse(
-                1L, "free", "정박지", "제목", "본문", "선원",
-                3, 0, false, LocalDateTime.now(), LocalDateTime.now()));
+                1L, "free", "정박지", "제목", "본문", 7L, "선원",
+                3, 0, false, java.util.List.of(), LocalDateTime.now(), LocalDateTime.now()));
 
         mockMvc.perform(get("/api/posts/1"))
                 .andExpect(status().isOk())
@@ -64,7 +64,7 @@ class PostControllerTest {
     @Test
     void create_returns400WhenTitleBlank() throws Exception {
         Member member = Member.create(Provider.GOOGLE, "u1", "선원");
-        when(memberSessionRepository.findById("t1")).thenReturn(Optional.of(
+        when(memberSessionRepository.findWithMemberByToken("t1")).thenReturn(Optional.of(
                 MemberSession.create("t1", member, LocalDateTime.now().plusDays(1))));
         String body = """
                 {"boardCode":"free","title":"","content":"본문"}
@@ -92,7 +92,7 @@ class PostControllerTest {
     @Test
     void create_returns401WhenSessionExpired() throws Exception {
         Member member = Member.create(Provider.GOOGLE, "u1", "선원");
-        when(memberSessionRepository.findById("old")).thenReturn(Optional.of(
+        when(memberSessionRepository.findWithMemberByToken("old")).thenReturn(Optional.of(
                 MemberSession.create("old", member, LocalDateTime.now().minusMinutes(1))));
         String body = """
                 {"boardCode":"free","title":"제목","content":"본문"}

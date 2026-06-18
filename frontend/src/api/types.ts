@@ -1,6 +1,6 @@
 // 백엔드 DTO와 1:1 대응하는 클라이언트 타입. enum 대신 string literal union(ECC TS 룰).
 
-export type BoardType = 'GENERAL' | 'GALLERY'
+export type BoardType = 'GENERAL' | 'GALLERY' | 'CARD' | 'VIDEO' | 'LETTER' | 'RANK'
 
 export interface Board {
   id: number
@@ -19,6 +19,7 @@ export interface PostSummary {
   viewCount: number
   likeCount: number
   pinned: boolean
+  thumbnailUrl: string | null
   createdAt: string
 }
 
@@ -28,19 +29,22 @@ export interface PostDetail {
   boardNameKr: string
   title: string
   content: string
+  authorId: number
   authorNickname: string
   viewCount: number
   likeCount: number
   pinned: boolean
+  imageUrls: string[]
   createdAt: string
   updatedAt: string
 }
 
-// 작성자는 서버가 신원 헤더(추후 세션)에서 도출한다 — 본문에 authorId 없음.
+// 작성자는 서버가 세션에서 도출한다 — 본문에 authorId 없음. imageUrls는 업로드 후 받은 경로.
 export interface PostCreateRequest {
   boardCode: string
   title: string
   content: string
+  imageUrls: string[]
 }
 
 export type Role = 'GUEST' | 'MEMBER' | 'ADMIN'

@@ -86,7 +86,7 @@ class PostServiceTest {
             return p;
         });
 
-        Long id = postService.create(new PostCreateRequest("free", "제목", "본문"), author);
+        Long id = postService.create(new PostCreateRequest("free", "제목", "본문", null), author);
 
         assertThat(id).isEqualTo(42L);
     }

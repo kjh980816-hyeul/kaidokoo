@@ -15,3 +15,15 @@ export function createPost(req: PostCreateRequest): Promise<{ id: number }> {
     body: JSON.stringify(req),
   })
 }
+
+/** 게시글 첨부 이미지 업로드(multipart 필드명 file). 저장된 공개 URL을 돌려준다. */
+export function uploadPostImage(file: File): Promise<{ url: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  return http<{ url: string }>('/posts/images', { method: 'POST', body: form })
+}
+
+/** 글 삭제(작성자 본인 또는 ADMIN). 권한은 서버에서 재검증된다. */
+export function deletePost(id: number): Promise<void> {
+  return http<void>(`/posts/${id}`, { method: 'DELETE' })
+}

@@ -2,6 +2,7 @@ package app.kaidoku.fancafe.post;
 
 import app.kaidoku.fancafe.board.Board;
 import app.kaidoku.fancafe.member.Member;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,12 +13,16 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /** 게시글. 연관관계는 LAZY, 변경은 의미 있는 메서드로(setter 미사용). */
 @Entity
@@ -63,6 +68,11 @@ public class Post {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /** 첨부 이미지(표시 순서대로). Post와 생명주기를 함께한다(cascade + orphanRemoval). */
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder asc")
+    private List<PostImage> images = new ArrayList<>();
+
     public static Post create(Board board, Member author, String title, String content) {
         Post p = new Post();
         p.board = board;
@@ -81,5 +91,16 @@ public class Post {
 
     public boolean isDeleted() {
         return this.status == PostStatus.DELETED;
+    }
+
+    /** 첨부 이미지 추가(작성 시). */
+    public void addImage(String url, int sortOrder) {
+        this.images.add(PostImage.of(this, url, sortOrder));
+    }
+
+    /** 소프트 삭제(상태만 DELETED로). 첨부 파일·레코드는 보존한다. */
+    public void softDelete() {
+        this.status = PostStatus.DELETED;
+        this.updatedAt = LocalDateTime.now();
     }
 }

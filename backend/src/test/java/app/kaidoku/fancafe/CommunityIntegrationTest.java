@@ -57,7 +57,7 @@ class CommunityIntegrationTest {
         Board board = boardRepository.save(
                 Board.create("c-" + author.getProviderUserId(), "테스트", null, null, 1,
                         BoardType.GENERAL, Role.MEMBER));
-        return postService.create(new PostCreateRequest(board.getCode(), "제목", "본문"), author);
+        return postService.create(new PostCreateRequest(board.getCode(), "제목", "본문", null), author);
     }
 
     @Test

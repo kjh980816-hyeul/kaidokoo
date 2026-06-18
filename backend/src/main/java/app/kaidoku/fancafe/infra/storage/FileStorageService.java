@@ -35,21 +35,39 @@ public class FileStorageService {
             "image/webp", "webp",
             "image/gif", "gif");
     private static final long MAX_BYTES = 2L * 1024 * 1024; // 2MB
-    private static final String URL_PREFIX = "/uploads/avatars/";
+    private static final String AVATAR_PREFIX = "/uploads/avatars/";
+    private static final String POST_PREFIX = "/uploads/posts/";
 
     private final Path avatarDir;
+    private final Path postDir;
 
     public FileStorageService(@Value("${app.upload.dir:uploads}") String uploadDir) {
-        this.avatarDir = Paths.get(uploadDir, "avatars").toAbsolutePath().normalize();
+        this.avatarDir = ensureDir(uploadDir, "avatars");
+        this.postDir = ensureDir(uploadDir, "posts");
+    }
+
+    private static Path ensureDir(String uploadDir, String sub) {
+        Path dir = Paths.get(uploadDir, sub).toAbsolutePath().normalize();
         try {
-            Files.createDirectories(avatarDir);
+            Files.createDirectories(dir);
         } catch (IOException e) {
-            throw new IllegalStateException("업로드 디렉터리 생성 실패: " + avatarDir, e);
+            throw new IllegalStateException("업로드 디렉터리 생성 실패: " + dir, e);
         }
+        return dir;
     }
 
     /** 아바타 저장 후 공개 URL 경로 반환. */
     public String storeAvatar(MultipartFile file) {
+        return store(file, avatarDir, AVATAR_PREFIX);
+    }
+
+    /** 게시글 첨부 이미지 저장 후 공개 URL 경로 반환. */
+    public String storePostImage(MultipartFile file) {
+        return store(file, postDir, POST_PREFIX);
+    }
+
+    /** 공통 저장 로직: MIME 화이트리스트 + 용량 제한 + 서버 생성 파일명(경로조작 차단). */
+    private String store(MultipartFile file, Path dir, String urlPrefix) {
         if (file == null || file.isEmpty()) {
             throw ApiException.badRequest("이미지 파일을 선택해 주세요.");
         }
@@ -61,21 +79,21 @@ public class FileStorageService {
             throw ApiException.badRequest("JPG·PNG·WEBP·GIF 이미지만 올릴 수 있습니다.");
         }
         String filename = UUID.randomUUID().toString().replace("-", "") + "." + ext;
-        Path target = avatarDir.resolve(filename).normalize();
+        Path target = dir.resolve(filename).normalize();
         try (InputStream in = file.getInputStream()) {
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new IllegalStateException("이미지 저장 실패", e);
         }
-        return URL_PREFIX + filename;
+        return urlPrefix + filename;
     }
 
     /** 우리가 저장한 아바타 파일이면 삭제(이전 프사 정리). 외부 URL·null은 무시. */
     public void deleteIfManaged(String url) {
-        if (url == null || !url.startsWith(URL_PREFIX)) {
+        if (url == null || !url.startsWith(AVATAR_PREFIX)) {
             return;
         }
-        String filename = url.substring(URL_PREFIX.length());
+        String filename = url.substring(AVATAR_PREFIX.length());
         Path target = avatarDir.resolve(filename).normalize();
         // 디렉터리 이탈 방지(혹시 모를 경로조작 차단).
         if (!target.startsWith(avatarDir)) {
