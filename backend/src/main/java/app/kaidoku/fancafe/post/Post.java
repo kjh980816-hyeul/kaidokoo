@@ -98,6 +98,18 @@ public class Post {
         this.images.add(PostImage.of(this, url, sortOrder));
     }
 
+    /** 제목·본문 수정(작성자/관리자). */
+    public void edit(String title, String content) {
+        this.title = title;
+        this.content = content;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /** 첨부 이미지 전체 제거(수정 시 교체용 — orphanRemoval로 DB 행도 삭제). */
+    public void clearImages() {
+        this.images.clear();
+    }
+
     /** 소프트 삭제(상태만 DELETED로). 첨부 파일·레코드는 보존한다. */
     public void softDelete() {
         this.status = PostStatus.DELETED;

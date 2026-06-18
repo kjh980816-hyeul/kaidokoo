@@ -77,6 +77,10 @@ export interface Attendance {
   streak: number
   totalDays: number
   today: string
+  year: number
+  month: number
+  daysInMonth: number
+  monthAttendedDays: number[]
 }
 
 export type LiveOverrideMode = 'AUTO' | 'FORCE_ON' | 'FORCE_OFF'

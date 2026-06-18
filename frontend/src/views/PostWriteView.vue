@@ -1,24 +1,46 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { createPost, uploadPostImage } from '@/api/posts'
+import { createPost, updatePost, uploadPostImage, fetchPost } from '@/api/posts'
 import { HttpError } from '@/api/http'
 
-const props = defineProps<{ code: string }>()
+// 작성 모드는 code(게시판), 수정 모드는 id(글)로 진입한다.
+const props = defineProps<{ code?: string; id?: string }>()
 const router = useRouter()
 
 const ACCEPT = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_BYTES = 2 * 1024 * 1024
 const MAX_IMAGES = 20
 
+const editing = computed(() => props.id != null)
+const postId = computed(() => Number(props.id))
+
 const title = ref('')
 const content = ref('')
 const images = ref<string[]>([]) // 업로드 완료된 이미지 URL들
+const boardCode = ref<string>(props.code ?? '')
 const submitting = ref(false)
 const uploading = ref(false)
+const loading = ref(false)
 const error = ref<string | null>(null)
 
 const fileInput = ref<HTMLInputElement | null>(null)
+
+onMounted(async () => {
+  if (!editing.value) return
+  loading.value = true
+  try {
+    const post = await fetchPost(postId.value)
+    title.value = post.title
+    content.value = post.content
+    images.value = [...post.imageUrls]
+    boardCode.value = post.boardCode
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : '글을 불러오지 못했습니다.'
+  } finally {
+    loading.value = false
+  }
+})
 
 async function onPickFiles(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement
@@ -63,13 +85,22 @@ async function submit(): Promise<void> {
   }
   submitting.value = true
   try {
-    const { id } = await createPost({
-      boardCode: props.code,
-      title: title.value.trim(),
-      content: content.value.trim(),
-      imageUrls: images.value,
-    })
-    await router.push({ name: 'post-detail', params: { id } })
+    if (editing.value) {
+      await updatePost(postId.value, {
+        title: title.value.trim(),
+        content: content.value.trim(),
+        imageUrls: images.value,
+      })
+      await router.push({ name: 'post-detail', params: { id: postId.value } })
+    } else {
+      const { id } = await createPost({
+        boardCode: boardCode.value,
+        title: title.value.trim(),
+        content: content.value.trim(),
+        imageUrls: images.value,
+      })
+      await router.push({ name: 'post-detail', params: { id } })
+    }
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : '글을 저장하지 못했습니다.'
   } finally {
@@ -80,10 +111,12 @@ async function submit(): Promise<void> {
 
 <template>
   <div class="write panel">
-    <p class="eyebrow">/{{ code }} · 새 글</p>
-    <h1 class="write-title">글쓰기</h1>
+    <p class="eyebrow">/{{ boardCode }} · {{ editing ? '글 수정' : '새 글' }}</p>
+    <h1 class="write-title">{{ editing ? '글 수정' : '글쓰기' }}</h1>
 
-    <form class="write-form" @submit.prevent="submit">
+    <p v-if="loading" class="muted">불러오는 중…</p>
+
+    <form v-else class="write-form" @submit.prevent="submit">
       <label>
         <span class="field-label">제목</span>
         <input v-model="title" type="text" maxlength="200" placeholder="제목을 입력하세요" />
@@ -118,7 +151,7 @@ async function submit(): Promise<void> {
 
       <div class="actions">
         <button type="submit" class="btn" :disabled="submitting || uploading">
-          {{ submitting ? '등록 중…' : '등록' }}
+          {{ submitting ? '등록 중…' : editing ? '수정' : '등록' }}
         </button>
       </div>
     </form>

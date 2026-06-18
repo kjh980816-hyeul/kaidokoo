@@ -25,6 +25,12 @@ const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/post/:id/edit',
+    name: 'post-edit',
+    component: () => import('@/views/PostWriteView.vue'),
+    props: true,
+  },
+  {
     path: '/me',
     name: 'mypage',
     component: () => import('@/views/MyPageView.vue'),

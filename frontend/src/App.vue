@@ -84,31 +84,34 @@ onMounted(() => {
           <span class="bm-emblem"><Emblem /></span>
           <span class="bm-name gold-text">CAPTAIN'S STARCHART</span>
         </RouterLink>
-        <nav class="nav" aria-label="주요 메뉴">
-          <RouterLink to="/">홈</RouterLink>
-          <RouterLink :to="{ path: '/', hash: '#boards' }">게시판</RouterLink>
-          <RouterLink :to="{ path: '/', hash: '#attend' }">출석</RouterLink>
-          <RouterLink v-if="me?.role === 'ADMIN'" to="/admin">관리자</RouterLink>
-          <span class="auth">
-            <template v-if="me?.authenticated">
-              <RouterLink to="/me" class="auth-me" title="마이페이지">
-                <img v-if="me.avatarUrl" :src="me.avatarUrl" alt="" class="auth-avatar" />
-                <span v-else class="auth-avatar auth-avatar--blank" aria-hidden="true"></span>
-                <span class="auth-name">{{ me.nickname }}</span>
-              </RouterLink>
-              <button type="button" class="auth-btn" @click="onLogout">로그아웃</button>
-            </template>
-            <template v-else-if="me">
-              <a class="auth-btn" :href="loginUrl('naver')">네이버 로그인</a>
-              <a class="auth-btn" :href="loginUrl('google')">구글 로그인</a>
-            </template>
-          </span>
-        </nav>
+        <span class="auth">
+          <template v-if="me?.authenticated">
+            <RouterLink to="/me" class="auth-me" title="마이페이지">
+              <img v-if="me.avatarUrl" :src="me.avatarUrl" alt="" class="auth-avatar" />
+              <span v-else class="auth-avatar auth-avatar--blank" aria-hidden="true"></span>
+              <span class="auth-name">{{ me.nickname }}</span>
+            </RouterLink>
+            <button type="button" class="auth-btn" @click="onLogout">로그아웃</button>
+          </template>
+          <template v-else-if="me">
+            <a class="auth-btn" :href="loginUrl('naver')">네이버 로그인</a>
+            <a class="auth-btn" :href="loginUrl('google')">구글 로그인</a>
+          </template>
+        </span>
       </header>
 
-      <main class="site-main">
-        <RouterView />
-      </main>
+      <div class="body">
+        <aside class="sidenav" aria-label="주요 메뉴">
+          <RouterLink to="/" class="sn-link">홈</RouterLink>
+          <RouterLink :to="{ path: '/', hash: '#boards' }" class="sn-link">게시판</RouterLink>
+          <RouterLink :to="{ path: '/', hash: '#attend' }" class="sn-link">출석</RouterLink>
+          <RouterLink v-if="me?.role === 'ADMIN'" to="/admin" class="sn-link">관리자</RouterLink>
+        </aside>
+
+        <main class="site-main">
+          <RouterView />
+        </main>
+      </div>
 
       <footer class="foot">
         <div class="f-emblem"><Emblem /></div>
@@ -258,9 +261,72 @@ onMounted(() => {
   border-color: var(--gold-1);
 }
 
+/* ── 본문 + 좌측 사이드바 ── */
+.body {
+  display: flex;
+  gap: clamp(1.2rem, 3vw, 2.6rem);
+  align-items: flex-start;
+}
+.sidenav {
+  flex: none;
+  width: 132px;
+  position: sticky;
+  top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-top: clamp(1.5rem, 1rem + 3vw, 3.5rem);
+  z-index: 20;
+}
+.sn-link {
+  font-family: var(--serif);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: var(--ink-body);
+  padding: 0.6rem 0.7rem;
+  border-left: 2px solid transparent;
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
+}
+.sn-link:hover,
+.sn-link.router-link-active {
+  color: var(--gold-2);
+  border-left-color: var(--gold-1);
+  background: rgba(201, 165, 92, 0.06);
+}
 .site-main {
   flex: 1;
+  min-width: 0;
   padding-block: clamp(1.5rem, 1rem + 3vw, 3.5rem);
+}
+
+@media (max-width: 760px) {
+  .body {
+    flex-direction: column;
+    gap: 0;
+  }
+  .sidenav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: auto;
+    position: static;
+    padding-top: 1rem;
+    gap: 0.3rem;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 0.6rem;
+  }
+  .sn-link {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+  }
+  .sn-link:hover,
+  .sn-link.router-link-active {
+    border-left-color: transparent;
+    border-bottom-color: var(--gold-1);
+  }
+  .site-main {
+    padding-block: clamp(1.2rem, 1rem + 2vw, 2.5rem);
+  }
 }
 
 /* ── 푸터 ── */

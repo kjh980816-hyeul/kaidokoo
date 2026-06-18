@@ -45,7 +45,15 @@ public class AttendanceService {
                 .toList();
         boolean checkedToday = !dates.isEmpty() && dates.get(0).equals(today);
         int streak = calculateStreak(dates, today);
-        return new AttendanceResponse(checkedToday, streak, dates.size(), today);
+        // 이달(달력 위젯) 출석한 날짜의 '일'만 추려 보낸다.
+        List<Integer> monthDays = dates.stream()
+                .filter(d -> d.getYear() == today.getYear() && d.getMonthValue() == today.getMonthValue())
+                .map(LocalDate::getDayOfMonth)
+                .distinct()
+                .sorted()
+                .toList();
+        return new AttendanceResponse(checkedToday, streak, dates.size(), today,
+                today.getYear(), today.getMonthValue(), today.lengthOfMonth(), monthDays);
     }
 
     /**

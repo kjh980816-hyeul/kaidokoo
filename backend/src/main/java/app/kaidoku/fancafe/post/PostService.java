@@ -7,6 +7,7 @@ import app.kaidoku.fancafe.common.Role;
 import app.kaidoku.fancafe.infra.storage.FileStorageService;
 import app.kaidoku.fancafe.member.Member;
 import app.kaidoku.fancafe.post.dto.PostCreateRequest;
+import app.kaidoku.fancafe.post.dto.PostUpdateRequest;
 import app.kaidoku.fancafe.post.dto.PostDetailResponse;
 import app.kaidoku.fancafe.post.dto.PostSummaryResponse;
 import org.springframework.stereotype.Service;
@@ -109,9 +110,24 @@ public class PostService {
         }
     }
 
+    /** 글 수정(작성자 본인 또는 ADMIN). 제목·본문 변경 + 이미지 전체 교체. */
+    @Transactional
+    public void update(Long postId, PostUpdateRequest request, Member member) {
+        Post post = loadEditable(postId, member);
+        post.edit(request.title(), request.content());
+        post.clearImages();
+        attachImages(post, request.imageUrls());
+    }
+
     /** 글 삭제(소프트). 작성자 본인 또는 ADMIN만. 권한은 여기(서버)에서 재검증한다. */
     @Transactional
     public void delete(Long postId, Member member) {
+        Post post = loadEditable(postId, member);
+        post.softDelete();
+    }
+
+    /** 수정·삭제 공통: 존재·미삭제 확인 + 작성자/ADMIN 권한 재검증. */
+    private Post loadEditable(Long postId, Member member) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> ApiException.notFound("글을 찾을 수 없습니다: " + postId));
         if (post.isDeleted()) {
@@ -120,8 +136,8 @@ public class PostService {
         boolean isAuthor = post.getAuthor().getId().equals(member.getId());
         boolean isAdmin = member.getRole() == Role.ADMIN;
         if (!isAuthor && !isAdmin) {
-            throw ApiException.forbidden("이 글을 삭제할 권한이 없습니다.");
+            throw ApiException.forbidden("이 글에 대한 권한이 없습니다.");
         }
-        post.softDelete();
+        return post;
     }
 }

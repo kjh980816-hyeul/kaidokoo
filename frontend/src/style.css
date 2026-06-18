@@ -74,8 +74,8 @@ body {
   background: var(--bg-abyss);
   color: var(--ink-body);
   font-family: var(--sans);
-  font-weight: 300;
-  line-height: 1.6;
+  font-weight: 400;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }

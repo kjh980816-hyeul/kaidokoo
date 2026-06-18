@@ -23,6 +23,14 @@ export function uploadPostImage(file: File): Promise<{ url: string }> {
   return http<{ url: string }>('/posts/images', { method: 'POST', body: form })
 }
 
+/** 글 수정(작성자 본인 또는 ADMIN). 제목·본문·이미지 교체. */
+export function updatePost(
+  id: number,
+  req: { title: string; content: string; imageUrls: string[] },
+): Promise<void> {
+  return http<void>(`/posts/${id}`, { method: 'PATCH', body: JSON.stringify(req) })
+}
+
 /** 글 삭제(작성자 본인 또는 ADMIN). 권한은 서버에서 재검증된다. */
 export function deletePost(id: number): Promise<void> {
   return http<void>(`/posts/${id}`, { method: 'DELETE' })

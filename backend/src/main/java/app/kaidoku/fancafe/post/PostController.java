@@ -3,12 +3,14 @@ package app.kaidoku.fancafe.post;
 import app.kaidoku.fancafe.auth.CurrentMember;
 import app.kaidoku.fancafe.member.Member;
 import app.kaidoku.fancafe.post.dto.PostCreateRequest;
+import app.kaidoku.fancafe.post.dto.PostUpdateRequest;
 import app.kaidoku.fancafe.post.dto.PostDetailResponse;
 import app.kaidoku.fancafe.post.dto.PostSummaryResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -59,6 +61,14 @@ public class PostController {
     public Map<String, String> uploadImage(@CurrentMember Member member,
                                            @RequestParam("file") MultipartFile file) {
         return Map.of("url", postService.storeImage(file));
+    }
+
+    /** 글 수정(작성자 본인 또는 ADMIN). 권한은 서비스에서 재검증한다. */
+    @PatchMapping("/posts/{id}")
+    public ResponseEntity<Void> update(@CurrentMember Member member, @PathVariable Long id,
+                                       @Valid @RequestBody PostUpdateRequest request) {
+        postService.update(id, request, member);
+        return ResponseEntity.noContent().build();
     }
 
     /** 글 삭제(작성자 본인 또는 ADMIN). 권한은 서비스에서 재검증한다. */

@@ -7,7 +7,7 @@ import { fetchLiveStatus } from '@/api/live'
 import { fetchAttendance, checkInAttendance } from '@/api/attendance'
 import type { Attendance, Board, LiveStatus } from '@/api/types'
 
-const STAMP_TRACK = 14 // 출석 도장 트랙 칸 수 (2주)
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 const boards = ref<Board[]>([])
 const loading = ref(true)
@@ -17,11 +17,25 @@ const live = ref<LiveStatus | null>(null)
 const attendance = ref<Attendance | null>(null)
 const attendanceBusy = ref(false)
 
-// 연속 출석(streak)만큼 별을 점등. 트랙은 14칸 고정(시안의 도장 그리드 모티프).
-const litCount = computed(() => Math.min(attendance.value?.streak ?? 0, STAMP_TRACK))
-const stamps = computed(() =>
-  Array.from({ length: STAMP_TRACK }, (_, i) => i < litCount.value),
+// 이달 달력: 1일의 요일만큼 앞을 비우고, 1~말일까지 칸을 만든다. 출석한 날은 점등.
+const attendedSet = computed(() => new Set(attendance.value?.monthAttendedDays ?? []))
+const todayDay = computed(() => {
+  const t = attendance.value?.today // "YYYY-MM-DD"
+  return t ? Number(t.slice(8, 10)) : -1
+})
+const monthLabel = computed(() =>
+  attendance.value
+    ? `${attendance.value.year}. ${String(attendance.value.month).padStart(2, '0')}`
+    : '',
 )
+const calendarCells = computed<(number | null)[]>(() => {
+  const a = attendance.value
+  if (!a) return []
+  const firstWeekday = new Date(a.year, a.month - 1, 1).getDay() // 0=일
+  const cells: (number | null)[] = Array.from({ length: firstWeekday }, () => null)
+  for (let d = 1; d <= a.daysInMonth; d++) cells.push(d)
+  return cells
+})
 
 onMounted(async () => {
   try {
@@ -85,10 +99,10 @@ async function onCheckIn(): Promise<void> {
     <div class="hero-emblem"><Emblem title="카이도쿠 팬카페 엠블럼" /></div>
     <p class="hero-eyebrow">Celestial Navigation Fan Club</p>
     <h1 class="hero-title gold-text">
-      CAPTAIN'S<br />STARCHART<span class="kr">선장의 별바다 항해</span>
+      CAPTAIN'S<br />STARCHART<span class="kr">선장의 별바다 항해 일지</span>
     </h1>
     <p class="hero-tagline">
-      밤하늘을 나침반 삼는 선장의 항해 일지.<br />별빛 아래 모인 선원들의 기록을 남기는 곳.
+      밤하늘을 나침반 삼는 선장의 항해 일지.<br />별빛 아래 모인 유랑단의 기록을 남기는 곳.
     </p>
     <div class="hero-rule" aria-hidden="true">
       <span class="ln"></span>
@@ -141,10 +155,22 @@ async function onCheckIn(): Promise<void> {
       <div class="ah-sub">매일 별 하나를 점등해 이달의 항로를 완성하세요</div>
     </div>
 
-    <div class="stamp-row">
-      <span v-for="(lit, i) in stamps" :key="i" class="stamp" :class="{ lit }">
-        <Emblem />
-      </span>
+    <div v-if="attendance" class="cal">
+      <div class="cal-month">{{ monthLabel }}</div>
+      <div class="cal-grid">
+        <span v-for="w in WEEKDAYS" :key="w" class="cal-w">{{ w }}</span>
+        <span
+          v-for="(day, i) in calendarCells"
+          :key="i"
+          class="cal-cell"
+          :class="{ lit: day !== null && attendedSet.has(day), today: day === todayDay }"
+        >
+          <template v-if="day !== null">
+            <Emblem v-if="attendedSet.has(day)" class="cal-star" />
+            <span v-else class="cal-day">{{ day }}</span>
+          </template>
+        </span>
+      </div>
     </div>
 
     <div class="attend-cta-row">
@@ -506,36 +532,61 @@ async function onCheckIn(): Promise<void> {
   color: var(--ink-faint);
   margin-top: 10px;
 }
-.stamp-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: clamp(8px, 1.4vw, 16px);
-  margin: clamp(24px, 3vh, 34px) auto 0;
-  max-width: 760px;
+.cal {
+  max-width: 460px;
+  margin: clamp(22px, 3vh, 32px) auto 0;
 }
-.stamp {
-  width: clamp(40px, 6vw, 54px);
+.cal-month {
+  text-align: center;
+  font-family: var(--serif);
+  letter-spacing: 0.3em;
+  font-size: 14px;
+  color: var(--ink-bright);
+  margin-bottom: 14px;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: clamp(4px, 1vw, 8px);
+}
+.cal-w {
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  padding-bottom: 4px;
+}
+.cal-cell {
   aspect-ratio: 1;
-  flex: none;
   display: grid;
   place-items: center;
   position: relative;
-  border: 1px solid rgba(201, 165, 92, 0.22);
-  color: rgba(201, 165, 92, 0.28);
-  transition: all 0.5s;
+  border: 1px solid rgba(201, 165, 92, 0.16);
+  border-radius: 6px;
+  color: var(--ink-faint);
+  transition: all 0.4s;
 }
-.stamp :deep(svg) {
-  width: 56%;
-  height: 56%;
+.cal-day {
+  font-size: clamp(11px, 1.6vw, 13px);
 }
-.stamp.lit {
-  color: var(--gold-2);
+.cal-cell.lit {
   border-color: rgba(232, 213, 160, 0.7);
-  box-shadow: 0 0 14px rgba(201, 165, 92, 0.25);
+  color: var(--gold-2);
+  box-shadow: 0 0 12px rgba(201, 165, 92, 0.22);
 }
-.stamp.lit :deep(svg) {
-  filter: drop-shadow(0 0 5px rgba(232, 213, 160, 0.6));
+.cal-star {
+  width: 60%;
+  height: 60%;
+  filter: drop-shadow(0 0 4px rgba(232, 213, 160, 0.6));
+}
+.cal-cell.today {
+  outline: 1px solid var(--gold-2);
+  outline-offset: 1px;
+}
+/* 첫 주 앞 빈칸(day=null)은 테두리 없이 비운다 */
+.cal-cell:empty {
+  border-color: transparent;
 }
 .attend-cta-row {
   text-align: center;

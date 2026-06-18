@@ -150,6 +150,7 @@ function toggleReply(commentId: number): void {
           {{ post.authorNickname }} · {{ formatDateTime(post.createdAt) }} · 조회 {{ post.viewCount }}
         </p>
         <div v-if="canDelete" class="post-tools">
+          <RouterLink :to="{ name: 'post-edit', params: { id: post.id } }" class="link-btn">글 수정</RouterLink>
           <button type="button" class="link-btn danger" :disabled="deleting" @click="onDeletePost">
             {{ deleting ? '삭제 중…' : '글 삭제' }}
           </button>
@@ -258,6 +259,7 @@ function toggleReply(commentId: number): void {
   margin-top: 0.8rem;
   display: flex;
   justify-content: flex-end;
+  gap: 1rem;
 }
 .post-body {
   white-space: pre-wrap;

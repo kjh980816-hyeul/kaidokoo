@@ -22,6 +22,12 @@ const displayPosts = computed(() => {
 // 랭킹 막대 그래프 기준값(최대 좋아요).
 const maxLikes = computed(() => Math.max(1, ...posts.value.map((p) => p.likeCount)))
 
+// 작성 48시간 이내면 NEW 뱃지.
+const NEW_MS = 1000 * 60 * 60 * 48
+function isNew(createdAt: string): boolean {
+  return Date.now() - new Date(createdAt).getTime() < NEW_MS
+}
+
 async function load(code: string): Promise<void> {
   loading.value = true
   error.value = null
@@ -64,6 +70,7 @@ watch(() => props.code, load, { immediate: true })
         <span v-else class="gal-blank" aria-hidden="true">✦</span>
         <span class="gal-cap">
           <span v-if="post.pinned" class="pin">✦</span>{{ post.title }}
+          <span v-if="isNew(post.createdAt)" class="new-badge">NEW</span>
         </span>
       </RouterLink>
     </li>
@@ -83,7 +90,7 @@ watch(() => props.code, load, { immediate: true })
           <span v-if="boardType === 'VIDEO'" class="play" aria-hidden="true">▶</span>
         </span>
         <span class="card-body">
-          <span class="card-title"><span v-if="post.pinned" class="pin">✦</span>{{ post.title }}</span>
+          <span class="card-title"><span v-if="post.pinned" class="pin">✦</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
           <span class="card-meta muted">
             {{ post.authorNickname }} · {{ formatDateTime(post.createdAt) }} · ♥ {{ post.likeCount }}
           </span>
@@ -97,7 +104,7 @@ watch(() => props.code, load, { immediate: true })
     <li v-for="post in displayPosts" :key="post.id" class="letter">
       <RouterLink :to="{ name: 'post-detail', params: { id: post.id } }" class="letter-link">
         <span class="letter-pin" aria-hidden="true">✦</span>
-        <span class="letter-title">{{ post.title }}</span>
+        <span class="letter-title">{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
         <span class="letter-meta muted">{{ post.authorNickname }}</span>
         <span class="letter-date muted">{{ formatDateTime(post.createdAt) }}</span>
       </RouterLink>
@@ -109,7 +116,7 @@ watch(() => props.code, load, { immediate: true })
     <li v-for="(post, i) in displayPosts" :key="post.id" class="rank-row">
       <span class="rank-no" :class="{ top: i < 3 }">{{ i + 1 }}</span>
       <RouterLink :to="{ name: 'post-detail', params: { id: post.id } }" class="rank-main">
-        <span class="rank-title">{{ post.title }}</span>
+        <span class="rank-title">{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
         <span class="rank-bar">
           <span class="rank-bar-fill" :style="{ width: (post.likeCount / maxLikes) * 100 + '%' }"></span>
         </span>
@@ -125,6 +132,7 @@ watch(() => props.code, load, { immediate: true })
         <span v-if="post.pinned" class="pin" aria-label="고정됨">✦</span>
         <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" alt="" class="row-thumb" />
         <span class="post-title">{{ post.title }}</span>
+        <span v-if="isNew(post.createdAt)" class="new-badge">NEW</span>
       </RouterLink>
       <span class="post-meta muted">
         {{ post.authorNickname }} · {{ formatDateTime(post.createdAt) }} · 조회 {{ post.viewCount }}
@@ -148,6 +156,19 @@ watch(() => props.code, load, { immediate: true })
 .pin {
   color: var(--gold);
   margin-right: 0.35rem;
+}
+.new-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  padding: 0.18rem 0.34rem;
+  border-radius: 3px;
+  color: var(--bg-night, #0a0e27);
+  background: var(--grad-gold, var(--gold));
 }
 .error {
   color: #e8a0a0;
