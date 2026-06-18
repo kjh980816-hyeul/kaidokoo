@@ -269,7 +269,7 @@ onMounted(() => {
 }
 .sidenav {
   flex: none;
-  width: 132px;
+  width: 116px;
   position: sticky;
   top: 1.5rem;
   display: flex;

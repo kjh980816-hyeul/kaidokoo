@@ -211,7 +211,7 @@ a:hover {
    레이아웃
    ============================================================ */
 .wrap {
-  max-width: 1180px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 0 clamp(20px, 4vw, 56px);
 }
