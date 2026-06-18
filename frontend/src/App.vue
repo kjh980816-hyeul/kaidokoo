@@ -138,6 +138,10 @@ onMounted(() => {
 }
 .page > .wrap {
   flex: 1;
+  /* flex 컬럼 아이템 + margin:0 auto 조합은 stretch를 풀어 콘텐츠 폭으로
+     줄어든다(페이지마다 폭이 달라짐). width:100%로 항상 가용 폭을 채워
+     max-width(1320)가 상한이 되게 하고, margin auto는 중앙정렬만 담당. */
+  width: 100%;
   display: flex;
   flex-direction: column;
 }
