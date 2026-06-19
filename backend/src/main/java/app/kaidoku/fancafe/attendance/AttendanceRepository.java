@@ -10,4 +10,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     boolean existsByMember_IdAndAttendDate(Long memberId, LocalDate attendDate);
 
     List<Attendance> findByMember_IdOrderByAttendDateDesc(Long memberId);
+
+    /** 특정 날짜 출석 회원 수(대시보드 오늘 출석 통계). */
+    long countByAttendDate(LocalDate attendDate);
 }

@@ -6,12 +6,19 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByProviderAndProviderUserId(Provider provider, String providerUserId);
+
+    /** 상태별 회원 수(대시보드 통계). */
+    long countByStatus(MemberStatus status);
+
+    /** threshold 이후 가입한 회원 수(대시보드 신규 가입 통계). */
+    long countByCreatedAtAfter(LocalDateTime threshold);
 
     /** 등급 삭제 시 그 등급의 회원을 대체 등급으로 일괄 이전(단일 SQL — FK 위반 레이스 창 제거). */
     @Modifying(clearAutomatically = true, flushAutomatically = true)

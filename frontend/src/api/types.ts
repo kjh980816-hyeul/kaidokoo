@@ -175,6 +175,21 @@ export interface BoardUpdateRequest {
   categories: string[]
 }
 
+// 운영 대시보드 통계. 백엔드 DashboardStatsResponse와 1:1.
+export interface DashboardStats {
+  totalMembers: number
+  activeMembers: number
+  suspendedMembers: number
+  withdrawnMembers: number
+  newMembers7d: number
+  totalPosts: number
+  newPosts7d: number
+  totalComments: number
+  totalBoards: number
+  totalGrades: number
+  attendanceToday: number
+}
+
 export interface MemberAdmin {
   id: number
   provider: Provider

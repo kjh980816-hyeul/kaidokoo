@@ -23,6 +23,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     /** 삭제(soft delete)되지 않은 글이 하나라도 있는지(게시판 삭제 가드). */
     boolean existsByBoard_IdAndStatusNot(Long boardId, PostStatus status);
 
+    /** 상태별 글 수(대시보드 통계 — PUBLISHED만 집계). */
+    long countByStatus(PostStatus status);
+
+    /** threshold 이후 작성된 특정 상태 글 수(대시보드 신규 글 통계). */
+    long countByStatusAndCreatedAtAfter(PostStatus status, LocalDateTime threshold);
+
     /** 게시판 글 목록. 작성자·게시판 fetch join으로 N+1/LAZY 예외 회피. 고정글 우선, 최신순. */
     @Query("""
             select p from Post p

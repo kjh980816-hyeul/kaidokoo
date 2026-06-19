@@ -3,6 +3,7 @@ import type {
   BoardAdmin,
   BoardCreateRequest,
   BoardUpdateRequest,
+  DashboardStats,
   GradeInput,
   LiveStatus,
   LiveUpdateRequest,
@@ -10,6 +11,11 @@ import type {
   Role,
   MemberStatus,
 } from './types'
+
+// 운영 대시보드 통계
+export function fetchDashboardStats(): Promise<DashboardStats> {
+  return http<DashboardStats>('/admin/stats')
+}
 
 // 게시판 관리
 export function fetchAdminBoards(): Promise<BoardAdmin[]> {

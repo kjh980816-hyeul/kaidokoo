@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import {
+  fetchDashboardStats,
   fetchAdminBoards, createBoard, updateBoard, deleteBoard,
   fetchAdminMembers, assignMemberGrade, changeMemberRole, changeMemberStatus,
   createGrade, updateGrade, deleteGrade, setLiveStatus,
@@ -11,7 +12,7 @@ import { fetchBannerLinks, updateBannerLinks } from '@/api/banner'
 import { HttpError } from '@/api/http'
 import type {
   BannerLinks,
-  BoardAdmin, BoardCreateRequest, BoardType, Grade, GradeInput, LiveOverrideMode, LiveStatus,
+  BoardAdmin, BoardCreateRequest, BoardType, DashboardStats, Grade, GradeInput, LiveOverrideMode, LiveStatus,
   MemberAdmin, MemberStatus, Role,
 } from '@/api/types'
 
@@ -27,12 +28,13 @@ const BOARD_TYPES: { value: BoardType; label: string }[] = [
 const boardTypeLabel = (t: BoardType): string =>
   BOARD_TYPES.find((x) => x.value === t)?.label ?? t
 
-type Tab = 'boards' | 'grades' | 'members' | 'live' | 'banner'
-const tab = ref<Tab>('boards')
+type Tab = 'dashboard' | 'boards' | 'grades' | 'members' | 'live' | 'banner'
+const tab = ref<Tab>('dashboard')
 const forbidden = ref(false)
 const loadError = ref<string | null>(null)
 const banner = ref<string | null>(null)
 
+const stats = ref<DashboardStats | null>(null)
 const boards = ref<BoardAdmin[]>([])
 const grades = ref<Grade[]>([])
 const members = ref<MemberAdmin[]>([])
@@ -88,14 +90,16 @@ async function loadAll(): Promise<void> {
   forbidden.value = false
   loadError.value = null
   try {
-    // 네 호출은 서로 독립 — 병렬 로딩.
-    const [boardList, memberList, gradeList, liveStatus, banner] = await Promise.all([
+    // 호출들은 서로 독립 — 병렬 로딩.
+    const [statsData, boardList, memberList, gradeList, liveStatus, banner] = await Promise.all([
+      fetchDashboardStats(),
       fetchAdminBoards(),
       fetchAdminMembers(),
       fetchGrades(),
       fetchLiveStatus(),
       fetchBannerLinks(),
     ])
+    stats.value = statsData
     boards.value = boardList
     members.value = memberList
     grades.value = gradeList
@@ -289,12 +293,46 @@ async function submitBanner(): Promise<void> {
 
     <template v-else>
       <nav class="tabs" aria-label="운영 메뉴">
+        <button :class="{ active: tab === 'dashboard' }" @click="tab = 'dashboard'">대시보드</button>
         <button :class="{ active: tab === 'boards' }" @click="tab = 'boards'">게시판</button>
         <button :class="{ active: tab === 'grades' }" @click="tab = 'grades'">등급</button>
         <button :class="{ active: tab === 'members' }" @click="tab = 'members'">회원</button>
         <button :class="{ active: tab === 'live' }" @click="tab = 'live'">라이브</button>
         <button :class="{ active: tab === 'banner' }" @click="tab = 'banner'">배너</button>
       </nav>
+
+      <!-- 대시보드 -->
+      <section v-if="tab === 'dashboard'" class="panel section">
+        <h2 class="section-title">운영 현황</h2>
+        <div v-if="stats" class="stat-grid">
+          <article class="stat-card primary">
+            <p class="stat-label">전체 회원</p>
+            <p class="stat-value">{{ stats.totalMembers.toLocaleString() }}</p>
+            <p class="stat-sub">정상 {{ stats.activeMembers }} · 정지 {{ stats.suspendedMembers }} · 탈퇴 {{ stats.withdrawnMembers }}</p>
+          </article>
+          <article class="stat-card primary">
+            <p class="stat-label">전체 게시글</p>
+            <p class="stat-value">{{ stats.totalPosts.toLocaleString() }}</p>
+            <p class="stat-sub">댓글 {{ stats.totalComments.toLocaleString() }}개</p>
+          </article>
+          <article class="stat-card">
+            <p class="stat-label">최근 7일 신규 가입</p>
+            <p class="stat-value">{{ stats.newMembers7d.toLocaleString() }}</p>
+          </article>
+          <article class="stat-card">
+            <p class="stat-label">최근 7일 새 글</p>
+            <p class="stat-value">{{ stats.newPosts7d.toLocaleString() }}</p>
+          </article>
+          <article class="stat-card">
+            <p class="stat-label">오늘 출석</p>
+            <p class="stat-value">{{ stats.attendanceToday.toLocaleString() }}</p>
+          </article>
+          <article class="stat-card">
+            <p class="stat-label">게시판 / 등급</p>
+            <p class="stat-value">{{ stats.totalBoards }} <span class="stat-divider">/</span> {{ stats.totalGrades }}</p>
+          </article>
+        </div>
+      </section>
 
       <!-- 게시판 -->
       <section v-if="tab === 'boards'" class="panel section">
@@ -499,6 +537,42 @@ async function submitBanner(): Promise<void> {
 }
 .section {
   padding: clamp(1.2rem, 1rem + 1.5vw, 2rem);
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.9rem;
+}
+.stat-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.1rem 1.2rem;
+  background: rgba(212, 175, 106, 0.04);
+}
+.stat-card.primary {
+  border-color: var(--gold);
+  background: rgba(212, 175, 106, 0.1);
+}
+.stat-label {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--gold-dim);
+}
+.stat-value {
+  margin: 0.45rem 0 0;
+  font-size: 2rem;
+  line-height: 1.1;
+  color: var(--gold-bright);
+}
+.stat-divider {
+  color: var(--gold-dim);
+  font-size: 1.4rem;
+}
+.stat-sub {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  color: var(--gold-dim);
 }
 .section-title {
   font-size: 1.1rem;

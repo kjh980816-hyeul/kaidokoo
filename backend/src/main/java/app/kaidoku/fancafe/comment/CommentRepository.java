@@ -21,4 +21,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             order by c.createdAt asc
             """)
     List<Comment> findVisibleForPost(@Param("postId") Long postId);
+
+    /** 상태별 댓글 수(대시보드 통계 — PUBLISHED만 집계). */
+    long countByStatus(CommentStatus status);
 }
