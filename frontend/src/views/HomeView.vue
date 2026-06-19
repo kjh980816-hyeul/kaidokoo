@@ -431,11 +431,19 @@ async function onCheckIn(): Promise<void> {
 /* ── 게시판 그리드 ── */
 .board-grid {
   display: grid;
-  /* 고정 폭 트랙 + 중앙정렬 → 마지막 줄이 덜 차도 가운데로 모인다
-     (1fr이면 트랙이 폭을 다 먹어 마지막 줄이 왼쪽으로 붙음). */
-  grid-template-columns: repeat(auto-fill, minmax(280px, 340px));
-  justify-content: center;
+  /* 항상 3열 고정. 좁아지면 2열 → 1열로 단계적 축소. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(16px, 2vw, 24px);
+}
+@media (max-width: 900px) {
+  .board-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .board-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .board-card {
   position: relative;

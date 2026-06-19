@@ -5,6 +5,7 @@ import { createPost, updatePost, uploadPostImage, fetchPost } from '@/api/posts'
 import { fetchBoards } from '@/api/boards'
 import { useMe } from '@/composables/useMe'
 import { HttpError } from '@/api/http'
+import { renderPostHtml } from '@/lib/sanitizeHtml'
 import RichEditor from '@/components/RichEditor.vue'
 
 // 본문은 이제 HTML. 태그를 벗기고 공백만 남으면 빈 본문으로 간주한다.
@@ -65,7 +66,9 @@ onMounted(async () => {
   try {
     const post = await fetchPost(postId.value)
     title.value = post.title
-    content.value = post.content
+    // 레거시 평문(태그 없는 \n 본문)은 그대로 TipTap에 넣으면 줄바꿈이 공백으로 뭉개진다.
+    // 상세뷰와 같은 변환(평문→<br>, HTML은 정제)을 거쳐 "보이는 그대로" 편집되게 한다.
+    content.value = renderPostHtml(post.content)
     images.value = [...post.imageUrls]
     boardCode.value = post.boardCode
     category.value = post.category ?? ''

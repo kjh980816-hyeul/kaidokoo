@@ -278,13 +278,17 @@ onMounted(() => {
 
 /* ── 본문 + 좌측 사이드바 ── */
 .body {
-  display: flex;
+  /* 좌우 대칭 3컬럼: [사이드바] [본문] [동일 폭 빈 공간].
+     본문 컬럼이 .wrap 정중앙에 오도록 양옆에 같은 폭(--nav-w)을 둔다.
+     (margin/padding 수치 보정이 아니라 대칭 트랙으로 진짜 가운데 정렬) */
+  --nav-w: 116px;
+  display: grid;
+  grid-template-columns: var(--nav-w) minmax(0, 1fr) var(--nav-w);
   gap: clamp(1.2rem, 3vw, 2.6rem);
-  align-items: flex-start;
+  align-items: start;
 }
 .sidenav {
-  flex: none;
-  width: 116px;
+  width: var(--nav-w);
   /* 모든 페이지에서 뷰포트 세로 중앙에 일관 배치.
      full-height sticky 컬럼(top:0 + height:100vh) 안에서 메뉴를 justify-content:center로
      가운데 정렬 → 콘텐츠가 짧은 게시판 페이지에서도 sticky가 갇히지 않고 중앙을 유지한다.
@@ -378,6 +382,8 @@ onMounted(() => {
 
 @media (max-width: 760px) {
   .body {
+    /* 모바일은 세로 1컬럼(가로 메뉴 → 본문). 그리드 대칭 트랙 해제. */
+    display: flex;
     flex-direction: column;
     gap: 0;
   }
