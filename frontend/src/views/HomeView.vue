@@ -3,9 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import Emblem from '@/components/Emblem.vue'
 import { fetchBoards } from '@/api/boards'
+import { fetchBannerLinks } from '@/api/banner'
 import { fetchLiveStatus } from '@/api/live'
 import { fetchAttendance, checkInAttendance } from '@/api/attendance'
-import type { Attendance, Board, LiveStatus } from '@/api/types'
+import type { Attendance, BannerLinks, Board, LiveStatus } from '@/api/types'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -16,6 +17,21 @@ const error = ref<string | null>(null)
 const live = ref<LiveStatus | null>(null)
 const attendance = ref<Attendance | null>(null)
 const attendanceBusy = ref(false)
+
+// 외부 링크 배너(게시판↔출석 사이). 실패해도 페이지를 막지 않는다(폴백 = 미노출).
+const bannerLinks = ref<BannerLinks | null>(null)
+const bannerItems = computed<{ label: string; url: string }[]>(() => {
+  const b = bannerLinks.value
+  if (!b) return []
+  const defs: { label: string; url: string | null }[] = [
+    { label: '유튜브', url: b.youtube },
+    { label: 'X', url: b.x },
+    { label: '씨미', url: b.seeme },
+    { label: '팬심', url: b.fancim },
+    { label: '팬심M', url: b.fancimM },
+  ]
+  return defs.filter((d): d is { label: string; url: string } => !!d.url && d.url.trim() !== '')
+})
 
 // 이달 달력: 1일의 요일만큼 앞을 비우고, 1~말일까지 칸을 만든다. 출석한 날은 점등.
 const attendedSet = computed(() => new Set(attendance.value?.monthAttendedDays ?? []))
@@ -52,6 +68,9 @@ onMounted(async () => {
   fetchAttendance()
     .then((a) => (attendance.value = a))
     .catch(() => (attendance.value = null))
+  fetchBannerLinks()
+    .then((l) => (bannerLinks.value = l))
+    .catch(() => (bannerLinks.value = null))
 })
 
 async function onCheckIn(): Promise<void> {
@@ -146,6 +165,20 @@ async function onCheckIn(): Promise<void> {
         </div>
       </RouterLink>
     </div>
+  </section>
+
+  <!-- 외부 링크 배너 (게시판 ↔ 출석 사이) -->
+  <section v-if="bannerItems.length > 0" class="link-banner" aria-label="외부 링크 바로가기">
+    <a
+      v-for="item in bannerItems"
+      :key="item.label"
+      :href="item.url"
+      target="_blank"
+      rel="noopener"
+      class="link-pill"
+    >
+      <span class="link-pill-ico" aria-hidden="true"><Emblem /></span>{{ item.label }}
+    </a>
   </section>
 
   <!-- 출석 항해 도장 -->
@@ -512,6 +545,41 @@ async function onCheckIn(): Promise<void> {
   background: var(--grad-gold);
   padding: 3px 9px;
   border-radius: 1px;
+}
+
+/* ── 외부 링크 배너 (게시판 ↔ 출석 사이) ── */
+.link-banner {
+  margin-top: clamp(34px, 5vh, 56px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(10px, 1.5vw, 18px);
+}
+.link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1.4rem;
+  border: 1px solid rgba(201, 165, 92, 0.4);
+  background: linear-gradient(160deg, rgba(13, 27, 62, 0.5), rgba(10, 14, 39, 0.35));
+  color: var(--ink-body);
+  font-family: var(--serif);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 13px;
+  transition: border-color 0.35s, color 0.35s, transform 0.35s, box-shadow 0.35s;
+}
+.link-pill:hover {
+  border-color: rgba(232, 213, 160, 0.8);
+  color: var(--ink-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 18px rgba(201, 165, 92, 0.12);
+}
+.link-pill-ico {
+  width: 18px;
+  height: 18px;
+  color: var(--gold-2);
+  flex: none;
 }
 
 /* ── 출석 위젯 ── */

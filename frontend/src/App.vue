@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import CelestialBackdrop from '@/components/CelestialBackdrop.vue'
 import Emblem from '@/components/Emblem.vue'
 import { logout, loginUrl } from '@/api/auth'
-import { fetchBannerLinks } from '@/api/banner'
 import { useMe } from '@/composables/useMe'
-import type { BannerLinks } from '@/api/types'
 
 const LOADER_MS = 2200 // 로딩 인트로 노출 시간(시안 톤)
 const FADE_MS = 1000 // #loader.gone opacity 트랜지션 길이와 일치
@@ -44,21 +42,6 @@ function replayLoader(): void {
 const router = useRouter()
 const { me, load: loadMe, clear: clearMe } = useMe()
 
-// 사이드바 외부링크 배너. 실패해도 페이지를 막지 않는다(폴백 = 미노출).
-const bannerLinks = ref<BannerLinks | null>(null)
-const bannerItems = computed<{ label: string; url: string }[]>(() => {
-  const b = bannerLinks.value
-  if (!b) return []
-  const defs: { label: string; url: string | null }[] = [
-    { label: '유튜브', url: b.youtube },
-    { label: 'X', url: b.x },
-    { label: '씨미', url: b.seeme },
-    { label: '팬심', url: b.fancim },
-    { label: '팬심M', url: b.fancimM },
-  ]
-  return defs.filter((d): d is { label: string; url: string } => !!d.url && d.url.trim() !== '')
-})
-
 async function onLogout(): Promise<void> {
   try {
     await logout()
@@ -71,9 +54,6 @@ async function onLogout(): Promise<void> {
 onMounted(() => {
   runLoader()
   void loadMe()
-  fetchBannerLinks()
-    .then((links) => (bannerLinks.value = links))
-    .catch(() => (bannerLinks.value = null))
 })
 </script>
 
@@ -124,20 +104,6 @@ onMounted(() => {
         <aside class="sidenav" aria-label="주요 메뉴">
           <RouterLink to="/" class="sn-link">홈</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#boards' }" class="sn-link">게시판</RouterLink>
-
-          <div v-if="bannerItems.length > 0" class="sn-banner" aria-label="외부 링크">
-            <a
-              v-for="item in bannerItems"
-              :key="item.label"
-              :href="item.url"
-              target="_blank"
-              rel="noopener"
-              class="sn-banner-link"
-            >
-              <span class="sn-banner-dot" aria-hidden="true">✦</span>{{ item.label }}
-            </a>
-          </div>
-
           <RouterLink :to="{ path: '/', hash: '#attend' }" class="sn-link">출석</RouterLink>
           <RouterLink v-if="me?.role === 'ADMIN'" to="/admin" class="sn-link">관리자</RouterLink>
         </aside>
