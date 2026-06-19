@@ -285,15 +285,16 @@ onMounted(() => {
 .sidenav {
   flex: none;
   width: 116px;
-  /* 콘텐츠 상단에 맞춰 고정. 뷰포트 세로 중앙(top:50vh) 방식은 콘텐츠가 짧은
-     게시판 페이지에서 sticky가 짧은 컨테이너에 갇혀 위치가 어긋났다 → 모든 페이지에서
-     본문(site-main) 상단 패딩과 같은 높이에서 시작하고, 스크롤 시 같은 오프셋으로 고정. */
+  /* 모든 페이지에서 뷰포트 세로 중앙에 일관 배치.
+     full-height sticky 컬럼(top:0 + height:100vh) 안에서 메뉴를 justify-content:center로
+     가운데 정렬 → 콘텐츠가 짧은 게시판 페이지에서도 sticky가 갇히지 않고 중앙을 유지한다.
+     (이전 top:50vh+translateY 방식은 짧은 컨테이너에 클램프돼 위치가 어긋났다.) */
   position: sticky;
-  top: clamp(1.5rem, 1rem + 3vw, 3.5rem);
-  align-self: flex-start;
-  padding-top: clamp(1.5rem, 1rem + 3vw, 3.5rem);
+  top: 0;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 0.15rem;
   z-index: 20;
 }
@@ -387,6 +388,8 @@ onMounted(() => {
     position: static;
     /* 데스크톱 세로중앙 고정값 해제(가로 메뉴로 전환) */
     top: auto;
+    height: auto;
+    justify-content: flex-start;
     transform: none;
     padding-top: 1rem;
     gap: 0.3rem;
