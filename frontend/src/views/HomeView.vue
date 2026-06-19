@@ -6,7 +6,7 @@ import { fetchBoards } from '@/api/boards'
 import { fetchBannerLinks } from '@/api/banner'
 import { fetchLiveStatus } from '@/api/live'
 import { fetchAttendance, checkInAttendance } from '@/api/attendance'
-import type { Attendance, BannerLinks, Board, LiveStatus } from '@/api/types'
+import type { Attendance, BannerItem, Board, LiveStatus } from '@/api/types'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -18,20 +18,8 @@ const live = ref<LiveStatus | null>(null)
 const attendance = ref<Attendance | null>(null)
 const attendanceBusy = ref(false)
 
-// 외부 링크 배너(게시판↔출석 사이). 실패해도 페이지를 막지 않는다(폴백 = 미노출).
-const bannerLinks = ref<BannerLinks | null>(null)
-const bannerItems = computed<{ label: string; url: string }[]>(() => {
-  const b = bannerLinks.value
-  if (!b) return []
-  const defs: { label: string; url: string | null }[] = [
-    { label: '유튜브', url: b.youtube },
-    { label: 'X', url: b.x },
-    { label: '씨미', url: b.seeme },
-    { label: '팬심', url: b.fancim },
-    { label: '팬심M', url: b.fancimM },
-  ]
-  return defs.filter((d): d is { label: string; url: string } => !!d.url && d.url.trim() !== '')
-})
+// 외부 링크 배너(게시판↔출석 사이). 관리자가 자유 추가. 실패해도 페이지를 막지 않는다(폴백 = 미노출).
+const bannerItems = ref<BannerItem[]>([])
 
 // 이달 달력: 1일의 요일만큼 앞을 비우고, 1~말일까지 칸을 만든다. 출석한 날은 점등.
 const attendedSet = computed(() => new Set(attendance.value?.monthAttendedDays ?? []))
@@ -69,8 +57,8 @@ onMounted(async () => {
     .then((a) => (attendance.value = a))
     .catch(() => (attendance.value = null))
   fetchBannerLinks()
-    .then((l) => (bannerLinks.value = l))
-    .catch(() => (bannerLinks.value = null))
+    .then((items) => (bannerItems.value = items))
+    .catch(() => (bannerItems.value = []))
 })
 
 async function onCheckIn(): Promise<void> {
@@ -130,6 +118,10 @@ async function onCheckIn(): Promise<void> {
     </div>
   </section>
 
+  <div class="sec-rule" aria-hidden="true">
+    <span class="ln"></span><span class="spark">✦</span><span class="ln r"></span>
+  </div>
+
   <!-- 게시판 -->
   <section id="boards">
     <div class="sec-head">
@@ -180,6 +172,10 @@ async function onCheckIn(): Promise<void> {
       <span class="link-pill-ico" aria-hidden="true"><Emblem /></span>{{ item.label }}
     </a>
   </section>
+
+  <div class="sec-rule" aria-hidden="true">
+    <span class="ln"></span><span class="spark">✦</span><span class="ln r"></span>
+  </div>
 
   <!-- 출석 항해 도장 -->
   <section class="attend" id="attend">
@@ -395,6 +391,27 @@ async function onCheckIn(): Promise<void> {
   font-size: 14px;
   color: var(--gold-2);
 }
+/* 섹션 구분선 — 히어로 하단 장식과 동일 톤. 각 섹터 사이에 배치. */
+.sec-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: clamp(34px, 5vh, 58px) auto;
+  color: var(--gold-1);
+}
+.sec-rule .ln {
+  width: clamp(50px, 12vw, 150px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-1));
+}
+.sec-rule .ln.r {
+  background: linear-gradient(90deg, var(--gold-1), transparent);
+}
+.sec-rule .spark {
+  font-size: 14px;
+  color: var(--gold-2);
+}
 .floaty {
   position: absolute;
   width: 22px;
@@ -566,15 +583,15 @@ async function onCheckIn(): Promise<void> {
 .link-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.75rem 1.4rem;
+  gap: 0.7rem;
+  padding: 1.05rem 2.2rem;
   border: 1px solid rgba(201, 165, 92, 0.4);
   background: linear-gradient(160deg, rgba(13, 27, 62, 0.5), rgba(10, 14, 39, 0.35));
   color: var(--ink-body);
   font-family: var(--serif);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  font-size: 13px;
+  font-size: 15.5px;
   transition: border-color 0.35s, color 0.35s, transform 0.35s, box-shadow 0.35s;
 }
 .link-pill:hover {
@@ -584,8 +601,8 @@ async function onCheckIn(): Promise<void> {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 18px rgba(201, 165, 92, 0.12);
 }
 .link-pill-ico {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   color: var(--gold-2);
   flex: none;
 }

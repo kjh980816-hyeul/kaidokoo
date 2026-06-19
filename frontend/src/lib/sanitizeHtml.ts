@@ -39,7 +39,12 @@ export function renderPostHtml(raw: string): string {
   if (!raw) return ''
 
   if (!HTML_TAG.test(raw)) {
-    return escapeHtml(raw).replace(/\r\n|\r|\n/g, '<br>')
+    // 레거시 평문: 줄바꿈은 <br>, 연속 공백·탭은 nbsp로 보존(원본 띄어쓰기 유지).
+    // 첫 칸만 일반 공백으로 둬 단어 줄바꿈은 살린다.
+    const escaped = escapeHtml(raw)
+      .replace(/\t/g, '    ')
+      .replace(/ {2,}/g, (m) => ' ' + ' '.repeat(m.length - 1))
+    return escaped.replace(/\r\n|\r|\n/g, '<br>')
   }
 
   registerIframeHook()

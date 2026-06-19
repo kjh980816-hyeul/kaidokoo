@@ -5,6 +5,7 @@ import CelestialBackdrop from '@/components/CelestialBackdrop.vue'
 import Emblem from '@/components/Emblem.vue'
 import { logout, loginUrl } from '@/api/auth'
 import { fetchPublicStats } from '@/api/stats'
+import { fetchBranding } from '@/api/branding'
 import { useMe } from '@/composables/useMe'
 
 const LOADER_MS = 2200 // 로딩 인트로 노출 시간(시안 톤)
@@ -46,6 +47,9 @@ const { me, load: loadMe, clear: clearMe } = useMe()
 // 공개 통계 — 사이드바 상단 "선원 N명". 실패해도 사이트엔 영향 없게 조용히 무시.
 const memberCount = ref<number | null>(null)
 
+// 사이트 로고(관리자 업로드). null이면 기본 엠블럼. 실패해도 무시.
+const logoUrl = ref<string | null>(null)
+
 async function onLogout(): Promise<void> {
   try {
     await logout()
@@ -61,6 +65,9 @@ onMounted(() => {
   fetchPublicStats()
     .then((s) => (memberCount.value = s.memberCount))
     .catch(() => {}) // 통계 실패는 무시(비핵심)
+  fetchBranding()
+    .then((b) => (logoUrl.value = b.logoUrl))
+    .catch(() => {}) // 로고 실패 시 기본 엠블럼
 })
 </script>
 
@@ -88,7 +95,8 @@ onMounted(() => {
     <div class="wrap">
       <header class="topbar">
         <RouterLink to="/" class="brandmark" aria-label="홈으로">
-          <span class="bm-emblem"><Emblem /></span>
+          <img v-if="logoUrl" :src="logoUrl" alt="" class="bm-logo" />
+          <span v-else class="bm-emblem"><Emblem /></span>
           <span class="bm-name gold-text">CAPTAIN'S STARCHART</span>
         </RouterLink>
         <span class="auth">
@@ -178,6 +186,14 @@ onMounted(() => {
   height: 38px;
   color: var(--gold-2);
   flex: none;
+}
+.brandmark .bm-logo {
+  height: 40px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
+  flex: none;
+  display: block;
 }
 .brandmark .bm-name {
   font-family: var(--serif);

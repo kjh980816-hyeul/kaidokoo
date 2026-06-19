@@ -24,4 +24,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     /** 상태별 댓글 수(대시보드 통계 — PUBLISHED만 집계). */
     long countByStatus(CommentStatus status);
+
+    /** 부모 댓글 삭제 시 대댓글 일괄 삭제(하드 삭제). 좋아요는 FK ON DELETE CASCADE로 정리. */
+    void deleteByParentId(Long parentId);
 }

@@ -69,6 +69,8 @@ public class HtmlSanitizer {
 
         // 2차: Jsoup가 그대로 둔 style/iframe/a 하드닝.
         Document doc = Jsoup.parseBodyFragment(cleaned);
+        // pretty-print는 블록 사이에 들여쓰기/개행을 끼워넣어 공백·줄바꿈 충실도를 해친다 → 끈다.
+        doc.outputSettings().prettyPrint(false);
         scrubStyles(doc);
         enforceIframeHostAllowlist(doc);
         hardenAnchors(doc);

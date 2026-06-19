@@ -62,13 +62,15 @@ export interface PostUpdateRequest {
   pinned: boolean
 }
 
-// 사이드바 외부링크 배너. 빈 문자열/null이면 미노출.
-export interface BannerLinks {
-  youtube: string | null
-  x: string | null
-  seeme: string | null
-  fancim: string | null
-  fancimM: string | null
+// 외부링크 배너 항목(관리자가 이름+링크 자유 추가).
+export interface BannerItem {
+  label: string
+  url: string
+}
+
+// 사이트 브랜딩(헤더 로고). logoUrl이 null이면 기본 엠블럼.
+export interface Branding {
+  logoUrl: string | null
 }
 
 export type Role = 'GUEST' | 'MEMBER' | 'ADMIN'
@@ -82,7 +84,8 @@ export interface Comment {
   authorNickname: string
   authorGradeName: string | null
   authorGradeColor: string | null
-  deleted: boolean
+  likeCount: number
+  liked: boolean
   createdAt: string
 }
 

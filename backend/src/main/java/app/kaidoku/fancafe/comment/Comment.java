@@ -65,10 +65,6 @@ public class Comment {
         return c;
     }
 
-    public void softDelete() {
-        this.status = CommentStatus.DELETED;
-    }
-
     public boolean isDeleted() {
         return this.status == CommentStatus.DELETED;
     }

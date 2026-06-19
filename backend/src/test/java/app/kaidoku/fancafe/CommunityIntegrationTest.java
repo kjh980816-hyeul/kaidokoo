@@ -66,7 +66,7 @@ class CommunityIntegrationTest {
         Long postId = newPost(author);
 
         commentService.create(postId, author, new CommentCreateRequest("첫 댓글", null));
-        List<CommentResponse> comments = commentService.listForPost(postId);
+        List<CommentResponse> comments = commentService.listForPost(postId, null);
 
         assertThat(comments).extracting(CommentResponse::content).contains("첫 댓글");
         assertThat(comments).extracting(CommentResponse::authorNickname).contains("선원c1");

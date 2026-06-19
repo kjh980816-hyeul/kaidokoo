@@ -9,9 +9,11 @@ import {
 import { fetchGrades } from '@/api/grades'
 import { fetchLiveStatus } from '@/api/live'
 import { fetchBannerLinks, updateBannerLinks } from '@/api/banner'
+import { fetchBranding, updateLogo } from '@/api/branding'
+import { uploadPostImage } from '@/api/posts'
 import { HttpError } from '@/api/http'
 import type {
-  BannerLinks,
+  BannerItem,
   BoardAdmin, BoardCreateRequest, BoardType, DashboardStats, Grade, GradeInput, LiveOverrideMode, LiveStatus,
   MemberAdmin, MemberStatus, Role,
 } from '@/api/types'
@@ -28,7 +30,7 @@ const BOARD_TYPES: { value: BoardType; label: string }[] = [
 const boardTypeLabel = (t: BoardType): string =>
   BOARD_TYPES.find((x) => x.value === t)?.label ?? t
 
-type Tab = 'dashboard' | 'boards' | 'grades' | 'members' | 'live' | 'banner'
+type Tab = 'dashboard' | 'boards' | 'grades' | 'members' | 'live' | 'banner' | 'branding'
 const tab = ref<Tab>('dashboard')
 const forbidden = ref(false)
 const loadError = ref<string | null>(null)
@@ -73,10 +75,19 @@ const liveForm = ref({
   channelId: '',
 })
 
-function emptyBanner(): BannerLinks {
-  return { youtube: '', x: '', seeme: '', fancim: '', fancimM: '' }
+// 배너: 이름+링크 자유 추가. 빈 행 1개를 기본 제공.
+const bannerItems = ref<BannerItem[]>([])
+function addBannerRow(): void {
+  bannerItems.value.push({ label: '', url: '' })
 }
-const bannerForm = ref<BannerLinks>(emptyBanner())
+function removeBannerRow(i: number): void {
+  bannerItems.value.splice(i, 1)
+}
+
+// 로고
+const logoUrl = ref<string | null>(null)
+const logoBusy = ref(false)
+const logoInput = ref<HTMLInputElement | null>(null)
 
 function notify(msg: string): void {
   banner.value = msg
@@ -91,13 +102,14 @@ async function loadAll(): Promise<void> {
   loadError.value = null
   try {
     // 호출들은 서로 독립 — 병렬 로딩.
-    const [statsData, boardList, memberList, gradeList, liveStatus, banner] = await Promise.all([
+    const [statsData, boardList, memberList, gradeList, liveStatus, bannerList, branding] = await Promise.all([
       fetchDashboardStats(),
       fetchAdminBoards(),
       fetchAdminMembers(),
       fetchGrades(),
       fetchLiveStatus(),
       fetchBannerLinks(),
+      fetchBranding(),
     ])
     stats.value = statsData
     boards.value = boardList
@@ -110,13 +122,8 @@ async function loadAll(): Promise<void> {
       streamUrl: liveStatus.streamUrl ?? '',
       channelId: liveStatus.channelId ?? '',
     }
-    bannerForm.value = {
-      youtube: banner.youtube ?? '',
-      x: banner.x ?? '',
-      seeme: banner.seeme ?? '',
-      fancim: banner.fancim ?? '',
-      fancimM: banner.fancimM ?? '',
-    }
+    bannerItems.value = bannerList.length > 0 ? bannerList : [{ label: '', url: '' }]
+    logoUrl.value = branding.logoUrl
   } catch (e: unknown) {
     // 권한 문제(401/403)일 때만 패널을 잠근다. 일시적 오류는 재시도 가능해야 한다.
     if (e instanceof HttpError && (e.status === 401 || e.status === 403)) {
@@ -258,14 +265,42 @@ async function submitLive(): Promise<void> {
 // ── 외부링크 배너 ──
 async function submitBanner(): Promise<void> {
   try {
-    await updateBannerLinks({
-      youtube: bannerForm.value.youtube?.trim() || null,
-      x: bannerForm.value.x?.trim() || null,
-      seeme: bannerForm.value.seeme?.trim() || null,
-      fancim: bannerForm.value.fancim?.trim() || null,
-      fancimM: bannerForm.value.fancimM?.trim() || null,
-    })
+    // 이름·링크 둘 다 있는 행만 저장(빈 행 무시).
+    const items = bannerItems.value
+      .map((it) => ({ label: it.label.trim(), url: it.url.trim() }))
+      .filter((it) => it.label !== '' && it.url !== '')
+    const saved = await updateBannerLinks(items)
+    bannerItems.value = saved.length > 0 ? saved : [{ label: '', url: '' }]
     notify('외부링크 배너를 저장했습니다.')
+  } catch (e: unknown) {
+    notify(errOf(e))
+  }
+}
+
+// ── 로고 ──
+async function onPickLogo(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  logoBusy.value = true
+  try {
+    const { url } = await uploadPostImage(file) // 업로드 → 경로 확보
+    const res = await updateLogo(url)           // 경로를 로고로 저장
+    logoUrl.value = res.logoUrl
+    notify('로고를 저장했습니다.')
+  } catch (e: unknown) {
+    notify(e instanceof HttpError ? e.message : '로고 업로드에 실패했습니다.')
+  } finally {
+    logoBusy.value = false
+    if (logoInput.value) logoInput.value.value = ''
+  }
+}
+async function resetLogo(): Promise<void> {
+  if (!confirm('로고를 기본 엠블럼으로 되돌릴까요?')) return
+  try {
+    const res = await updateLogo(null)
+    logoUrl.value = res.logoUrl
+    notify('기본 엠블럼으로 되돌렸습니다.')
   } catch (e: unknown) {
     notify(errOf(e))
   }
@@ -299,6 +334,7 @@ async function submitBanner(): Promise<void> {
         <button :class="{ active: tab === 'members' }" @click="tab = 'members'">회원</button>
         <button :class="{ active: tab === 'live' }" @click="tab = 'live'">라이브</button>
         <button :class="{ active: tab === 'banner' }" @click="tab = 'banner'">배너</button>
+        <button :class="{ active: tab === 'branding' }" @click="tab = 'branding'">로고</button>
       </nav>
 
       <!-- 대시보드 -->
@@ -479,14 +515,41 @@ async function submitBanner(): Promise<void> {
       <section v-if="tab === 'banner'" class="panel section">
         <form class="grid-form" @submit.prevent="submitBanner">
           <h2 class="section-title">외부링크 배너</h2>
-          <p class="muted hint">사이드바에 노출할 외부 링크입니다. 빈 칸은 표시되지 않습니다.</p>
-          <label>유튜브<input v-model="bannerForm.youtube" placeholder="https://youtube.com/@..." /></label>
-          <label>X<input v-model="bannerForm.x" placeholder="https://x.com/..." /></label>
-          <label>씨미<input v-model="bannerForm.seeme" placeholder="https://ci.me/..." /></label>
-          <label>팬심<input v-model="bannerForm.fancim" placeholder="https://fancim..." /></label>
-          <label>팬심M<input v-model="bannerForm.fancimM" placeholder="https://m.fancim..." /></label>
-          <div class="form-actions"><button type="submit" class="btn">저장</button></div>
+          <p class="muted hint">홈 화면(게시판↔출석 사이)에 큰 버튼으로 노출됩니다. 이름과 링크를 자유롭게 추가하세요. 빈 칸은 저장되지 않습니다.</p>
+          <div v-for="(item, i) in bannerItems" :key="i" class="row banner-row">
+            <label>이름<input v-model="item.label" maxlength="30" placeholder="유튜브" /></label>
+            <label>링크<input v-model="item.url" placeholder="https://..." /></label>
+            <button type="button" class="link-btn danger banner-del" @click="removeBannerRow(i)">삭제</button>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn ghost" @click="addBannerRow">+ 배너 추가</button>
+            <button type="submit" class="btn">저장</button>
+          </div>
         </form>
+      </section>
+
+      <!-- 로고 -->
+      <section v-if="tab === 'branding'" class="panel section">
+        <h2 class="section-title">사이트 로고</h2>
+        <p class="muted hint">헤더 좌측에 표시됩니다. PNG·JPG·WEBP·GIF, 2MB 이하. 가로로 긴 이미지가 잘 어울립니다.</p>
+        <div class="logo-preview">
+          <img v-if="logoUrl" :src="logoUrl" alt="현재 로고" />
+          <span v-else class="muted">현재: 기본 엠블럼</span>
+        </div>
+        <div class="form-actions">
+          <label class="btn upload-btn">
+            {{ logoBusy ? '업로드 중…' : '이미지 업로드' }}
+            <input
+              ref="logoInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              hidden
+              :disabled="logoBusy"
+              @change="onPickLogo"
+            />
+          </label>
+          <button v-if="logoUrl" type="button" class="btn ghost" @click="resetLogo">기본으로</button>
+        </div>
       </section>
     </template>
   </div>
@@ -673,5 +736,32 @@ async function submitBanner(): Promise<void> {
   border-radius: 999px;
   border: 1px solid var(--badge);
   color: var(--badge);
+}
+.banner-row {
+  align-items: flex-end;
+}
+.banner-del {
+  padding-bottom: 0.5rem;
+  white-space: nowrap;
+}
+.logo-preview {
+  display: flex;
+  align-items: center;
+  min-height: 60px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: rgba(212, 175, 106, 0.04);
+}
+.logo-preview img {
+  height: 48px;
+  width: auto;
+  max-width: 240px;
+  object-fit: contain;
+  display: block;
+}
+.upload-btn {
+  cursor: pointer;
 }
 </style>

@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { fetchPost, deletePost } from '@/api/posts'
 import { fetchLikeStatus, toggleLike } from '@/api/likes'
-import { fetchComments, createComment, deleteComment } from '@/api/comments'
+import { fetchComments, createComment, deleteComment, toggleCommentLike } from '@/api/comments'
 import type { Comment, LikeStatus, PostDetail } from '@/api/types'
 import { useMe } from '@/composables/useMe'
 import { formatDateTime } from '@/lib/format'
@@ -134,6 +134,17 @@ function toggleReply(commentId: number): void {
   replyTo.value = replyTo.value === commentId ? null : commentId
   replyText.value = ''
 }
+
+// 댓글 좋아요 토글. 응답으로 받은 값으로 해당 댓글 객체를 직접 갱신(반응형).
+async function onToggleCommentLike(c: Comment): Promise<void> {
+  try {
+    const res = await toggleCommentLike(c.id)
+    c.liked = res.liked
+    c.likeCount = res.likeCount
+  } catch (e: unknown) {
+    commentError.value = e instanceof Error ? e.message : '좋아요 처리에 실패했습니다'
+  }
+}
 </script>
 
 <template>
@@ -180,7 +191,7 @@ function toggleReply(commentId: number): void {
 
     <section class="comments panel" aria-labelledby="comments-heading">
       <h2 id="comments-heading" class="comments-title">
-        댓글 <span class="count">{{ comments.filter((c) => !c.deleted).length }}</span>
+        댓글 <span class="count">{{ comments.length }}</span>
       </h2>
 
       <p v-if="commentError" class="error">{{ commentError }}</p>
@@ -196,8 +207,11 @@ function toggleReply(commentId: number): void {
             >{{ c.authorGradeName }}</span>
             <span class="comment-date muted">{{ formatDateTime(c.createdAt) }}</span>
           </div>
-          <p class="comment-body" :class="{ deleted: c.deleted }">{{ c.content }}</p>
-          <div v-if="!c.deleted" class="comment-actions">
+          <p class="comment-body">{{ c.content }}</p>
+          <div class="comment-actions">
+            <button class="like-mini" :class="{ liked: c.liked }" @click="onToggleCommentLike(c)">
+              <span aria-hidden="true">{{ c.liked ? '♥' : '♡' }}</span> {{ c.likeCount }}
+            </button>
             <button class="link-btn" @click="toggleReply(c.id)">답글</button>
             <button class="link-btn danger" @click="onDeleteComment(c.id)">삭제</button>
           </div>
@@ -219,8 +233,11 @@ function toggleReply(commentId: number): void {
                 >{{ r.authorGradeName }}</span>
                 <span class="comment-date muted">{{ formatDateTime(r.createdAt) }}</span>
               </div>
-              <p class="comment-body" :class="{ deleted: r.deleted }">{{ r.content }}</p>
-              <div v-if="!r.deleted" class="comment-actions">
+              <p class="comment-body">{{ r.content }}</p>
+              <div class="comment-actions">
+                <button class="like-mini" :class="{ liked: r.liked }" @click="onToggleCommentLike(r)">
+                  <span aria-hidden="true">{{ r.liked ? '♥' : '♡' }}</span> {{ r.likeCount }}
+                </button>
                 <button class="link-btn danger" @click="onDeleteComment(r.id)">삭제</button>
               </div>
             </li>
@@ -415,14 +432,29 @@ function toggleReply(commentId: number): void {
   line-height: 1.7;
   white-space: pre-wrap;
 }
-.comment-body.deleted {
-  color: var(--gold-dim);
-  font-style: italic;
-}
 .comment-actions {
   display: flex;
+  align-items: center;
   gap: 0.8rem;
   margin-top: 0.4rem;
+}
+.like-mini {
+  background: none;
+  border: none;
+  color: var(--gold-dim);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: color var(--dur) var(--ease);
+}
+.like-mini:hover {
+  color: var(--gold-bright);
+}
+.like-mini.liked {
+  color: var(--gold-bright);
 }
 .link-btn {
   background: none;

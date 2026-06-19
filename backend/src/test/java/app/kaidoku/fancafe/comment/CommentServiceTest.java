@@ -20,12 +20,15 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
 
     @Mock CommentRepository commentRepository;
+    @Mock CommentLikeRepository commentLikeRepository;
     @Mock PostRepository postRepository;
 
     @InjectMocks CommentService commentService;
@@ -52,14 +55,15 @@ class CommentServiceTest {
     }
 
     @Test
-    void delete_softDeletesForAuthor() {
+    void delete_hardDeletesForAuthor() {
         Member author = member(5L, Role.MEMBER);
         Comment c = comment(7L, author);
         when(commentRepository.findById(7L)).thenReturn(Optional.of(c));
 
         commentService.delete(7L, author);
 
-        assertThat(c.isDeleted()).isTrue();
+        verify(commentRepository).deleteByParentId(7L); // 대댓글까지 제거
+        verify(commentRepository).delete(c);            // 본 댓글 하드 삭제
     }
 
     @Test
@@ -70,7 +74,7 @@ class CommentServiceTest {
 
         commentService.delete(7L, admin);
 
-        assertThat(c.isDeleted()).isTrue();
+        verify(commentRepository).delete(c);
     }
 
     @Test
@@ -82,7 +86,7 @@ class CommentServiceTest {
         assertThatThrownBy(() -> commentService.delete(7L, other))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("삭제");
-        assertThat(c.isDeleted()).isFalse();
+        verify(commentRepository, never()).delete(c); // 권한 없으면 삭제 안 함
     }
 
     @Test

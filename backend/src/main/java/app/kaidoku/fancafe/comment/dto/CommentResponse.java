@@ -5,7 +5,7 @@ import app.kaidoku.fancafe.grade.Grade;
 
 import java.time.LocalDateTime;
 
-/** 댓글 응답. 삭제된 댓글은 본문을 가리고 자리표시만 남긴다(스레드 보존). */
+/** 댓글 응답. 삭제는 하드 삭제(행 제거)라 자리표시가 없다. likeCount/liked는 서비스가 일괄 계산해 주입. */
 public record CommentResponse(
         Long id,
         Long parentId,
@@ -13,20 +13,21 @@ public record CommentResponse(
         String authorNickname,
         String authorGradeName,
         String authorGradeColor,
-        boolean deleted,
+        long likeCount,
+        boolean liked,
         LocalDateTime createdAt
 ) {
-    public static CommentResponse from(Comment c) {
-        boolean deleted = c.isDeleted();
+    public static CommentResponse from(Comment c, long likeCount, boolean liked) {
         Grade grade = c.getAuthor().getGrade();
         return new CommentResponse(
                 c.getId(),
                 c.getParentId(),
-                deleted ? "삭제된 댓글입니다." : c.getContent(),
+                c.getContent(),
                 c.getAuthor().getNickname(),
                 grade != null ? grade.getName() : null,
                 grade != null ? grade.getBadgeColor() : null,
-                deleted,
+                likeCount,
+                liked,
                 c.getCreatedAt());
     }
 }
