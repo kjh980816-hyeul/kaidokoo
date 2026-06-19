@@ -37,8 +37,8 @@ class LikeServiceTest {
     }
 
     private Post post(long id, int likeCount) {
-        Board board = Board.create("free", "정박지", null, null, 1, BoardType.GENERAL, Role.MEMBER);
-        Post p = Post.create(board, member(99L), "제목", "본문");
+        Board board = Board.create("free", "정박지", null, null, 1, BoardType.GENERAL, Role.MEMBER, null);
+        Post p = Post.create(board, member(99L), "제목", "본문", null);
         ReflectionTestUtils.setField(p, "id", id);
         ReflectionTestUtils.setField(p, "likeCount", likeCount);
         return p;

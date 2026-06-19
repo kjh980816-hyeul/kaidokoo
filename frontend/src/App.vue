@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import CelestialBackdrop from '@/components/CelestialBackdrop.vue'
 import Emblem from '@/components/Emblem.vue'
 import { logout, loginUrl } from '@/api/auth'
+import { fetchBannerLinks } from '@/api/banner'
 import { useMe } from '@/composables/useMe'
+import type { BannerLinks } from '@/api/types'
 
 const LOADER_MS = 2200 // 로딩 인트로 노출 시간(시안 톤)
 const FADE_MS = 1000 // #loader.gone opacity 트랜지션 길이와 일치
@@ -42,6 +44,21 @@ function replayLoader(): void {
 const router = useRouter()
 const { me, load: loadMe, clear: clearMe } = useMe()
 
+// 사이드바 외부링크 배너. 실패해도 페이지를 막지 않는다(폴백 = 미노출).
+const bannerLinks = ref<BannerLinks | null>(null)
+const bannerItems = computed<{ label: string; url: string }[]>(() => {
+  const b = bannerLinks.value
+  if (!b) return []
+  const defs: { label: string; url: string | null }[] = [
+    { label: '유튜브', url: b.youtube },
+    { label: 'X', url: b.x },
+    { label: '씨미', url: b.seeme },
+    { label: '팬심', url: b.fancim },
+    { label: '팬심M', url: b.fancimM },
+  ]
+  return defs.filter((d): d is { label: string; url: string } => !!d.url && d.url.trim() !== '')
+})
+
 async function onLogout(): Promise<void> {
   try {
     await logout()
@@ -54,6 +71,9 @@ async function onLogout(): Promise<void> {
 onMounted(() => {
   runLoader()
   void loadMe()
+  fetchBannerLinks()
+    .then((links) => (bannerLinks.value = links))
+    .catch(() => (bannerLinks.value = null))
 })
 </script>
 
@@ -104,6 +124,20 @@ onMounted(() => {
         <aside class="sidenav" aria-label="주요 메뉴">
           <RouterLink to="/" class="sn-link">홈</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#boards' }" class="sn-link">게시판</RouterLink>
+
+          <div v-if="bannerItems.length > 0" class="sn-banner" aria-label="외부 링크">
+            <a
+              v-for="item in bannerItems"
+              :key="item.label"
+              :href="item.url"
+              target="_blank"
+              rel="noopener"
+              class="sn-banner-link"
+            >
+              <span class="sn-banner-dot" aria-hidden="true">✦</span>{{ item.label }}
+            </a>
+          </div>
+
           <RouterLink :to="{ path: '/', hash: '#attend' }" class="sn-link">출석</RouterLink>
           <RouterLink v-if="me?.role === 'ADMIN'" to="/admin" class="sn-link">관리자</RouterLink>
         </aside>
@@ -300,6 +334,34 @@ onMounted(() => {
   border-left-color: var(--gold-1);
   background: rgba(201, 165, 92, 0.06);
 }
+/* 외부링크 배너(사이드바) */
+.sn-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0.3rem 0;
+  padding: 0.4rem 0;
+  border-top: 1px solid rgba(201, 165, 92, 0.18);
+  border-bottom: 1px solid rgba(201, 165, 92, 0.18);
+}
+.sn-banner-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--kr-serif, serif);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  padding: 0.34rem 0.7rem;
+  transition: color 0.3s;
+}
+.sn-banner-link:hover {
+  color: var(--gold-2);
+}
+.sn-banner-dot {
+  font-size: 9px;
+  color: var(--gold-1);
+}
 .site-main {
   flex: 1;
   min-width: 0;
@@ -332,6 +394,17 @@ onMounted(() => {
   .sn-link.router-link-active {
     border-left-color: transparent;
     border-bottom-color: var(--gold-1);
+  }
+  .sn-banner {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.4rem;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+  .sn-banner-link {
+    padding: 0.3rem 0.5rem;
   }
   .site-main {
     padding-block: clamp(1.2rem, 1rem + 2vw, 2.5rem);

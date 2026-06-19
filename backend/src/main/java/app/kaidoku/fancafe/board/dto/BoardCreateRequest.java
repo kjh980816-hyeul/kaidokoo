@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 /** 게시판 생성 요청(관리자). code는 URL 슬러그라 생성 후 변경 불가. */
 public record BoardCreateRequest(
         @NotBlank(message = "게시판 코드는 필수입니다")
@@ -29,6 +31,9 @@ public record BoardCreateRequest(
         BoardType type,
 
         @NotNull(message = "작성 권한은 필수입니다")
-        Role writeRole
+        Role writeRole,
+
+        /** 말머리 라벨 목록(선택). 각 20자 이하, 최대 12개. 서비스에서 쉼표로 합쳐 저장. */
+        List<String> categories
 ) {
 }

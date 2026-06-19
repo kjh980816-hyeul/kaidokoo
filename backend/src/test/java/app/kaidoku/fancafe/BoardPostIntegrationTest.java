@@ -35,7 +35,7 @@ class BoardPostIntegrationTest {
 
     private Board newBoard(String code, int sort) {
         return Board.create(code, "테스트게시판", null, null, sort,
-                app.kaidoku.fancafe.board.BoardType.GENERAL, app.kaidoku.fancafe.common.Role.MEMBER);
+                app.kaidoku.fancafe.board.BoardType.GENERAL, app.kaidoku.fancafe.common.Role.MEMBER, null);
     }
 
     @Test
@@ -44,7 +44,7 @@ class BoardPostIntegrationTest {
         Member author = memberRepository.save(Member.create(Provider.GOOGLE, "itest-1", "통합선원"));
 
         Long postId = postService.create(
-                new PostCreateRequest(board.getCode(), "통합 제목", "통합 본문", null), author);
+                new PostCreateRequest(board.getCode(), "통합 제목", "통합 본문", null, false, null), author);
 
         List<PostSummaryResponse> list = postService.listByBoard(board.getCode());
         assertThat(list).extracting(PostSummaryResponse::title).contains("통합 제목");

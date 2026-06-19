@@ -1,5 +1,5 @@
 import { http } from './http'
-import type { PostSummary, PostDetail, PostCreateRequest } from './types'
+import type { PostSummary, PostDetail, PostCreateRequest, PostUpdateRequest } from './types'
 
 export function fetchPosts(boardCode: string): Promise<PostSummary[]> {
   return http<PostSummary[]>(`/boards/${encodeURIComponent(boardCode)}/posts`)
@@ -24,10 +24,7 @@ export function uploadPostImage(file: File): Promise<{ url: string }> {
 }
 
 /** 글 수정(작성자 본인 또는 ADMIN). 제목·본문·이미지 교체. */
-export function updatePost(
-  id: number,
-  req: { title: string; content: string; imageUrls: string[] },
-): Promise<void> {
+export function updatePost(id: number, req: PostUpdateRequest): Promise<void> {
   return http<void>(`/posts/${id}`, { method: 'PATCH', body: JSON.stringify(req) })
 }
 

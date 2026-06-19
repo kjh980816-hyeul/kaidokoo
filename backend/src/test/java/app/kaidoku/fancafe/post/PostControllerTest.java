@@ -42,7 +42,7 @@ class PostControllerTest {
     @Test
     void detail_returnsJson() throws Exception {
         when(postService.getDetail(eq(1L))).thenReturn(new PostDetailResponse(
-                1L, "free", "정박지", "제목", "본문", 7L, "선원",
+                1L, "free", "정박지", "제목", "본문", null, 7L, "선원",
                 3, 0, false, java.util.List.of(), LocalDateTime.now(), LocalDateTime.now()));
 
         mockMvc.perform(get("/api/posts/1"))

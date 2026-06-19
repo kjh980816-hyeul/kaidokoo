@@ -7,8 +7,10 @@ import {
 } from '@/api/admin'
 import { fetchGrades } from '@/api/grades'
 import { fetchLiveStatus } from '@/api/live'
+import { fetchBannerLinks, updateBannerLinks } from '@/api/banner'
 import { HttpError } from '@/api/http'
 import type {
+  BannerLinks,
   BoardAdmin, BoardCreateRequest, BoardType, Grade, GradeInput, LiveOverrideMode, LiveStatus,
   MemberAdmin, MemberStatus, Role,
 } from '@/api/types'
@@ -25,7 +27,7 @@ const BOARD_TYPES: { value: BoardType; label: string }[] = [
 const boardTypeLabel = (t: BoardType): string =>
   BOARD_TYPES.find((x) => x.value === t)?.label ?? t
 
-type Tab = 'boards' | 'grades' | 'members' | 'live'
+type Tab = 'boards' | 'grades' | 'members' | 'live' | 'banner'
 const tab = ref<Tab>('boards')
 const forbidden = ref(false)
 const loadError = ref<string | null>(null)
@@ -40,11 +42,16 @@ const ROLES: Role[] = ['GUEST', 'MEMBER', 'ADMIN']
 const STATUSES: MemberStatus[] = ['ACTIVE', 'SUSPENDED', 'WITHDRAWN']
 
 function emptyBoard(): BoardCreateRequest {
-  return { code: '', nameKr: '', nameEn: null, description: null, sortOrder: 0, type: 'GENERAL', writeRole: 'MEMBER' }
+  return { code: '', nameKr: '', nameEn: null, description: null, sortOrder: 0, type: 'GENERAL', writeRole: 'MEMBER', categories: [] }
 }
 const boardForm = ref<BoardCreateRequest>(emptyBoard())
 const editingBoardId = ref<number | null>(null)
 const boardVisible = ref(true)
+// 말머리는 쉼표 구분 텍스트로 입력 → 제출 시 string[]로 변환.
+const boardCategoriesText = ref('')
+function parseCategories(text: string): string[] {
+  return text.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+}
 
 function emptyGrade(): GradeInput {
   return { name: '', sortOrder: 0, badgeColor: '#D4AF6A', isDefault: false }
@@ -59,6 +66,11 @@ const liveForm = ref({
   channelId: '',
 })
 
+function emptyBanner(): BannerLinks {
+  return { youtube: '', x: '', seeme: '', fancim: '', fancimM: '' }
+}
+const bannerForm = ref<BannerLinks>(emptyBanner())
+
 function notify(msg: string): void {
   banner.value = msg
   setTimeout(() => (banner.value = null), 2600)
@@ -72,11 +84,12 @@ async function loadAll(): Promise<void> {
   loadError.value = null
   try {
     // 네 호출은 서로 독립 — 병렬 로딩.
-    const [boardList, memberList, gradeList, liveStatus] = await Promise.all([
+    const [boardList, memberList, gradeList, liveStatus, banner] = await Promise.all([
       fetchAdminBoards(),
       fetchAdminMembers(),
       fetchGrades(),
       fetchLiveStatus(),
+      fetchBannerLinks(),
     ])
     boards.value = boardList
     members.value = memberList
@@ -87,6 +100,13 @@ async function loadAll(): Promise<void> {
       title: liveStatus.title ?? '',
       streamUrl: liveStatus.streamUrl ?? '',
       channelId: liveStatus.channelId ?? '',
+    }
+    bannerForm.value = {
+      youtube: banner.youtube ?? '',
+      x: banner.x ?? '',
+      seeme: banner.seeme ?? '',
+      fancim: banner.fancim ?? '',
+      fancimM: banner.fancimM ?? '',
     }
   } catch (e: unknown) {
     // 권한 문제(401/403)일 때만 패널을 잠근다. 일시적 오류는 재시도 가능해야 한다.
@@ -102,11 +122,12 @@ onMounted(loadAll)
 // ── 게시판 ──
 async function submitBoard(): Promise<void> {
   try {
+    const categories = parseCategories(boardCategoriesText.value)
     if (editingBoardId.value === null) {
-      await createBoard(boardForm.value)
+      await createBoard({ ...boardForm.value, categories })
       notify('게시판을 추가했습니다.')
     } else {
-      await updateBoard(editingBoardId.value, { ...boardForm.value, visible: boardVisible.value })
+      await updateBoard(editingBoardId.value, { ...boardForm.value, categories, visible: boardVisible.value })
       notify('게시판을 수정했습니다.')
     }
     resetBoardForm()
@@ -120,13 +141,15 @@ function editBoard(b: BoardAdmin): void {
   boardVisible.value = b.visible
   boardForm.value = {
     code: b.code, nameKr: b.nameKr, nameEn: b.nameEn, description: b.description,
-    sortOrder: b.sortOrder, type: b.type, writeRole: b.writeRole,
+    sortOrder: b.sortOrder, type: b.type, writeRole: b.writeRole, categories: b.categories,
   }
+  boardCategoriesText.value = b.categories.join(', ')
 }
 function resetBoardForm(): void {
   editingBoardId.value = null
   boardVisible.value = true
   boardForm.value = emptyBoard()
+  boardCategoriesText.value = ''
 }
 async function removeBoard(b: BoardAdmin): Promise<void> {
   if (!confirm(`'${b.nameKr}' 게시판을 삭제할까요?`)) return
@@ -217,6 +240,22 @@ async function submitLive(): Promise<void> {
     notify(errOf(e))
   }
 }
+
+// ── 외부링크 배너 ──
+async function submitBanner(): Promise<void> {
+  try {
+    await updateBannerLinks({
+      youtube: bannerForm.value.youtube?.trim() || null,
+      x: bannerForm.value.x?.trim() || null,
+      seeme: bannerForm.value.seeme?.trim() || null,
+      fancim: bannerForm.value.fancim?.trim() || null,
+      fancimM: bannerForm.value.fancimM?.trim() || null,
+    })
+    notify('외부링크 배너를 저장했습니다.')
+  } catch (e: unknown) {
+    notify(errOf(e))
+  }
+}
 </script>
 
 <template>
@@ -244,6 +283,7 @@ async function submitLive(): Promise<void> {
         <button :class="{ active: tab === 'grades' }" @click="tab = 'grades'">등급</button>
         <button :class="{ active: tab === 'members' }" @click="tab = 'members'">회원</button>
         <button :class="{ active: tab === 'live' }" @click="tab = 'live'">라이브</button>
+        <button :class="{ active: tab === 'banner' }" @click="tab = 'banner'">배너</button>
       </nav>
 
       <!-- 게시판 -->
@@ -270,6 +310,11 @@ async function submitLive(): Promise<void> {
             </label>
             <label v-if="editingBoardId !== null" class="check">
               <input v-model="boardVisible" type="checkbox" /> 노출
+            </label>
+          </div>
+          <div class="row">
+            <label>말머리(쉼표로 구분)
+              <input v-model="boardCategoriesText" placeholder="공지, 질문, 자유" />
             </label>
           </div>
           <div class="form-actions">
@@ -378,6 +423,20 @@ async function submitLive(): Promise<void> {
             ※ 자동 모드는 채널 ID가 있어야 동작하며 30~60초 간격으로 방송 여부를 감지합니다.
             제목은 자동 모드에서 방송 제목으로 갱신됩니다.
           </p>
+          <div class="form-actions"><button type="submit" class="btn">저장</button></div>
+        </form>
+      </section>
+
+      <!-- 외부링크 배너 -->
+      <section v-if="tab === 'banner'" class="panel section">
+        <form class="grid-form" @submit.prevent="submitBanner">
+          <h2 class="section-title">외부링크 배너</h2>
+          <p class="muted hint">사이드바에 노출할 외부 링크입니다. 빈 칸은 표시되지 않습니다.</p>
+          <label>유튜브<input v-model="bannerForm.youtube" placeholder="https://youtube.com/@..." /></label>
+          <label>X<input v-model="bannerForm.x" placeholder="https://x.com/..." /></label>
+          <label>씨미<input v-model="bannerForm.seeme" placeholder="https://ci.me/..." /></label>
+          <label>팬심<input v-model="bannerForm.fancim" placeholder="https://fancim..." /></label>
+          <label>팬심M<input v-model="bannerForm.fancimM" placeholder="https://m.fancim..." /></label>
           <div class="form-actions"><button type="submit" class="btn">저장</button></div>
         </form>
       </section>

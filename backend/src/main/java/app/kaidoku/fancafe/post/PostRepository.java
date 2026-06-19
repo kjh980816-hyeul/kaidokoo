@@ -5,10 +5,20 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
+
+    /** threshold 이후 작성된 공개 글이 있는 게시판 id 집합(홈 카드 NEW 뱃지용, 단일 쿼리로 N+1 회피). */
+    @Query("""
+            select distinct p.board.id from Post p
+            where p.status = app.kaidoku.fancafe.post.PostStatus.PUBLISHED
+              and p.createdAt > :threshold
+            """)
+    Set<Long> boardIdsWithPostsAfter(@Param("threshold") LocalDateTime threshold);
 
     /** 삭제(soft delete)되지 않은 글이 하나라도 있는지(게시판 삭제 가드). */
     boolean existsByBoard_IdAndStatusNot(Long boardId, PostStatus status);

@@ -39,8 +39,8 @@ class CommentServiceTest {
     }
 
     private Post post(long id) {
-        Board board = Board.create("free", "정박지", null, null, 1, BoardType.GENERAL, Role.MEMBER);
-        Post p = Post.create(board, member(99L, Role.MEMBER), "제목", "본문");
+        Board board = Board.create("free", "정박지", null, null, 1, BoardType.GENERAL, Role.MEMBER, null);
+        Post p = Post.create(board, member(99L, Role.MEMBER), "제목", "본문", null);
         ReflectionTestUtils.setField(p, "id", id);
         return p;
     }

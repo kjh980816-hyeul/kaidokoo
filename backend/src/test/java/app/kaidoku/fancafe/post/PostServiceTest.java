@@ -33,7 +33,7 @@ class PostServiceTest {
 
     private Board sampleBoard() {
         Board board = Board.create("free", "정박지", "Harbor", null, 1,
-                app.kaidoku.fancafe.board.BoardType.GENERAL, app.kaidoku.fancafe.common.Role.MEMBER);
+                app.kaidoku.fancafe.board.BoardType.GENERAL, app.kaidoku.fancafe.common.Role.MEMBER, null);
         ReflectionTestUtils.setField(board, "id", 10L);
         return board;
     }
@@ -42,7 +42,7 @@ class PostServiceTest {
     void getDetail_incrementsViewCountAtomically() {
         Board board = sampleBoard();
         Member author = Member.create(Provider.GOOGLE, "u1", "선원");
-        Post post = Post.create(board, author, "제목", "본문");
+        Post post = Post.create(board, author, "제목", "본문", null);
         ReflectionTestUtils.setField(post, "id", 1L);
         when(postRepository.findDetailById(1L)).thenReturn(Optional.of(post));
 
@@ -65,7 +65,7 @@ class PostServiceTest {
 
     @Test
     void getDetail_throwsWhenDeleted() {
-        Post deleted = Post.create(sampleBoard(), Member.create(Provider.GOOGLE, "u1", "선원"), "t", "c");
+        Post deleted = Post.create(sampleBoard(), Member.create(Provider.GOOGLE, "u1", "선원"), "t", "c", null);
         ReflectionTestUtils.setField(deleted, "status", PostStatus.DELETED);
         when(postRepository.findDetailById(2L)).thenReturn(Optional.of(deleted));
 
@@ -86,7 +86,7 @@ class PostServiceTest {
             return p;
         });
 
-        Long id = postService.create(new PostCreateRequest("free", "제목", "본문", null), author);
+        Long id = postService.create(new PostCreateRequest("free", "제목", "본문", null, false, null), author);
 
         assertThat(id).isEqualTo(42L);
     }

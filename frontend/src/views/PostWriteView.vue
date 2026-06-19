@@ -2,6 +2,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { createPost, updatePost, uploadPostImage, fetchPost } from '@/api/posts'
+import { fetchBoards } from '@/api/boards'
+import { useMe } from '@/composables/useMe'
 import { HttpError } from '@/api/http'
 
 // 작성 모드는 code(게시판), 수정 모드는 id(글)로 진입한다.
@@ -15,10 +17,16 @@ const MAX_IMAGES = 20
 const editing = computed(() => props.id != null)
 const postId = computed(() => Number(props.id))
 
+const { me } = useMe()
+const isAdmin = computed(() => me.value?.role === 'ADMIN')
+
 const title = ref('')
 const content = ref('')
 const images = ref<string[]>([]) // 업로드 완료된 이미지 URL들
 const boardCode = ref<string>(props.code ?? '')
+const categories = ref<string[]>([]) // 게시판이 정의한 말머리 목록
+const category = ref<string>('') // 선택된 말머리('' = 말머리 없음)
+const pinned = ref(false) // 공지 고정(ADMIN 전용)
 const submitting = ref(false)
 const uploading = ref(false)
 const loading = ref(false)
@@ -26,8 +34,22 @@ const error = ref<string | null>(null)
 
 const fileInput = ref<HTMLInputElement | null>(null)
 
+// 게시판 메타(말머리 목록)를 코드로 조회. 작성·수정 양쪽에서 필요하다.
+async function loadBoardCategories(code: string): Promise<void> {
+  if (!code) return
+  try {
+    const boards = await fetchBoards()
+    categories.value = boards.find((b) => b.code === code)?.categories ?? []
+  } catch {
+    categories.value = []
+  }
+}
+
 onMounted(async () => {
-  if (!editing.value) return
+  if (!editing.value) {
+    await loadBoardCategories(boardCode.value)
+    return
+  }
   loading.value = true
   try {
     const post = await fetchPost(postId.value)
@@ -35,6 +57,9 @@ onMounted(async () => {
     content.value = post.content
     images.value = [...post.imageUrls]
     boardCode.value = post.boardCode
+    category.value = post.category ?? ''
+    pinned.value = post.pinned
+    await loadBoardCategories(post.boardCode)
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : '글을 불러오지 못했습니다.'
   } finally {
@@ -85,11 +110,14 @@ async function submit(): Promise<void> {
   }
   submitting.value = true
   try {
+    const cat = category.value || null
     if (editing.value) {
       await updatePost(postId.value, {
         title: title.value.trim(),
         content: content.value.trim(),
         imageUrls: images.value,
+        category: cat,
+        pinned: pinned.value,
       })
       await router.push({ name: 'post-detail', params: { id: postId.value } })
     } else {
@@ -98,6 +126,8 @@ async function submit(): Promise<void> {
         title: title.value.trim(),
         content: content.value.trim(),
         imageUrls: images.value,
+        category: cat,
+        pinned: pinned.value,
       })
       await router.push({ name: 'post-detail', params: { id } })
     }
@@ -117,6 +147,19 @@ async function submit(): Promise<void> {
     <p v-if="loading" class="muted">불러오는 중…</p>
 
     <form v-else class="write-form" @submit.prevent="submit">
+      <label v-if="categories.length > 0">
+        <span class="field-label">말머리</span>
+        <select v-model="category" class="prefix-select">
+          <option value="">말머리 없음</option>
+          <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+        </select>
+      </label>
+
+      <label v-if="isAdmin" class="check-row">
+        <input v-model="pinned" type="checkbox" />
+        <span>공지로 고정</span>
+      </label>
+
       <label>
         <span class="field-label">제목</span>
         <input v-model="title" type="text" maxlength="200" placeholder="제목을 입력하세요" />
@@ -182,6 +225,20 @@ async function submit(): Promise<void> {
   letter-spacing: 0;
   color: var(--gold-dim);
   opacity: 0.8;
+}
+.prefix-select {
+  font-size: 0.95rem;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.check-row input {
+  width: auto;
 }
 .file {
   font-size: 0.85rem;

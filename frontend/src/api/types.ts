@@ -10,6 +10,8 @@ export interface Board {
   description: string | null
   type: BoardType
   sortOrder: number
+  categories: string[]
+  hasNew: boolean
 }
 
 export interface PostSummary {
@@ -19,6 +21,7 @@ export interface PostSummary {
   viewCount: number
   likeCount: number
   pinned: boolean
+  category: string | null
   thumbnailUrl: string | null
   createdAt: string
 }
@@ -34,6 +37,7 @@ export interface PostDetail {
   viewCount: number
   likeCount: number
   pinned: boolean
+  category: string | null
   imageUrls: string[]
   createdAt: string
   updatedAt: string
@@ -45,6 +49,26 @@ export interface PostCreateRequest {
   title: string
   content: string
   imageUrls: string[]
+  category: string | null
+  pinned: boolean
+}
+
+// 글 수정 본문. category·pinned 포함(말머리·고정공지 반영).
+export interface PostUpdateRequest {
+  title: string
+  content: string
+  imageUrls: string[]
+  category: string | null
+  pinned: boolean
+}
+
+// 사이드바 외부링크 배너. 빈 문자열/null이면 미노출.
+export interface BannerLinks {
+  youtube: string | null
+  x: string | null
+  seeme: string | null
+  fancim: string | null
+  fancimM: string | null
 }
 
 export type Role = 'GUEST' | 'MEMBER' | 'ADMIN'
@@ -126,6 +150,7 @@ export interface BoardAdmin {
   sortOrder: number
   visible: boolean
   writeRole: Role
+  categories: string[]
 }
 
 export interface BoardCreateRequest {
@@ -136,6 +161,7 @@ export interface BoardCreateRequest {
   sortOrder: number
   type: BoardType
   writeRole: Role
+  categories: string[]
 }
 
 export interface BoardUpdateRequest {
@@ -146,6 +172,7 @@ export interface BoardUpdateRequest {
   type: BoardType
   writeRole: Role
   visible: boolean
+  categories: string[]
 }
 
 export interface MemberAdmin {

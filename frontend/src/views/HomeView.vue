@@ -130,6 +130,7 @@ async function onCheckIn(): Promise<void> {
         :to="{ name: 'board', params: { code: board.code } }"
         class="board-card"
       >
+        <span v-if="board.hasNew" class="bc-new">NEW</span>
         <div class="bc-top">
           <span class="bc-icon"><Emblem /></span>
           <span class="bc-no">No.{{ String(i + 1).padStart(2, '0') }}</span>
@@ -428,6 +429,22 @@ async function onCheckIn(): Promise<void> {
 }
 .board-card:hover::before {
   border-color: rgba(201, 165, 92, 0.4);
+}
+.bc-new {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  font-family: var(--serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  padding: 0.28rem 0.45rem;
+  border-radius: 2px;
+  color: var(--bg-night, #0a0e27);
+  background: var(--grad-gold, var(--gold-2));
+  box-shadow: 0 0 12px rgba(201, 165, 92, 0.4);
 }
 .bc-top {
   display: flex;

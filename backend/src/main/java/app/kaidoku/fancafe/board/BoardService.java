@@ -10,11 +10,23 @@ import app.kaidoku.fancafe.post.PostStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
 public class BoardService {
+
+    /** NEW 뱃지 기준: 이 기간 안에 작성된 공개 글이 있으면 hasNew=true. */
+    private static final Duration NEW_WINDOW = Duration.ofHours(48);
+
+    /** 말머리 라벨 1개 최대 길이. */
+    private static final int MAX_CATEGORY_LABEL_LENGTH = 20;
+
+    /** 게시판당 말머리 라벨 최대 개수. */
+    private static final int MAX_CATEGORY_COUNT = 12;
 
     private final BoardRepository boardRepository;
     private final PostRepository postRepository;
@@ -24,10 +36,12 @@ public class BoardService {
         this.postRepository = postRepository;
     }
 
-    /** 노출된 게시판을 정렬 순서대로 반환(공개 사이트 카드 그리드용). */
+    /** 노출된 게시판을 정렬 순서대로 반환(공개 사이트 카드 그리드용). hasNew는 단일 쿼리로 일괄 계산(N+1 회피). */
     public List<BoardResponse> listVisibleBoards() {
-        return boardRepository.findByVisibleTrueOrderBySortOrderAsc().stream()
-                .map(BoardResponse::from)
+        List<Board> boards = boardRepository.findByVisibleTrueOrderBySortOrderAsc();
+        Set<Long> recentIds = postRepository.boardIdsWithPostsAfter(LocalDateTime.now().minus(NEW_WINDOW));
+        return boards.stream()
+                .map(b -> BoardResponse.from(b, recentIds.contains(b.getId())))
                 .toList();
     }
 
@@ -44,7 +58,8 @@ public class BoardService {
             throw ApiException.conflict("이미 존재하는 게시판 코드입니다: " + request.code());
         }
         Board board = Board.create(request.code(), request.nameKr(), request.nameEn(),
-                request.description(), request.sortOrder(), request.type(), request.writeRole());
+                request.description(), request.sortOrder(), request.type(), request.writeRole(),
+                joinCategories(request.categories()));
         return boardRepository.save(board).getId();
     }
 
@@ -52,7 +67,31 @@ public class BoardService {
     public void updateBoard(Long boardId, BoardUpdateRequest request) {
         Board board = getById(boardId);
         board.update(request.nameKr(), request.nameEn(), request.description(),
-                request.sortOrder(), request.type(), request.writeRole(), request.visible());
+                request.sortOrder(), request.type(), request.writeRole(), request.visible(),
+                joinCategories(request.categories()));
+    }
+
+    /** 말머리 라벨 목록 → 저장용 쉼표 문자열. 빈값 제거·트림·검증(길이/개수). 없으면 null. */
+    private String joinCategories(List<String> categories) {
+        if (categories == null) {
+            return null;
+        }
+        List<String> cleaned = categories.stream()
+                .filter(c -> c != null && !c.isBlank())
+                .map(String::trim)
+                .toList();
+        if (cleaned.isEmpty()) {
+            return null;
+        }
+        if (cleaned.size() > MAX_CATEGORY_COUNT) {
+            throw ApiException.badRequest("말머리는 최대 " + MAX_CATEGORY_COUNT + "개까지 가능합니다.");
+        }
+        for (String label : cleaned) {
+            if (label.length() > MAX_CATEGORY_LABEL_LENGTH) {
+                throw ApiException.badRequest("말머리는 각 " + MAX_CATEGORY_LABEL_LENGTH + "자 이하여야 합니다: " + label);
+            }
+        }
+        return String.join(",", cleaned);
     }
 
     @Transactional

@@ -62,6 +62,10 @@ public class Post {
     @Column(name = "is_pinned", nullable = false)
     private boolean pinned;
 
+    /** 말머리(선택). 게시판의 categories 중 하나이거나 null(서버 검증은 PostService). */
+    @Column(length = 50)
+    private String category;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -73,12 +77,13 @@ public class Post {
     @OrderBy("sortOrder asc")
     private List<PostImage> images = new ArrayList<>();
 
-    public static Post create(Board board, Member author, String title, String content) {
+    public static Post create(Board board, Member author, String title, String content, String category) {
         Post p = new Post();
         p.board = board;
         p.author = author;
         p.title = title;
         p.content = content;
+        p.category = category;
         p.viewCount = 0;
         p.likeCount = 0;
         p.status = PostStatus.PUBLISHED;
@@ -98,11 +103,17 @@ public class Post {
         this.images.add(PostImage.of(this, url, sortOrder));
     }
 
-    /** 제목·본문 수정(작성자/관리자). */
-    public void edit(String title, String content) {
+    /** 제목·본문·말머리 수정(작성자/관리자). */
+    public void edit(String title, String content, String category) {
         this.title = title;
         this.content = content;
+        this.category = category;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    /** 고정 여부 설정(관리자 전용 — 권한 검증은 PostService에서). */
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
     }
 
     /** 첨부 이미지 전체 제거(수정 시 교체용 — orphanRemoval로 DB 행도 삭제). */

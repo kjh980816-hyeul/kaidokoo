@@ -80,13 +80,34 @@ public class PostService {
         return PostDetailResponse.from(post, post.getViewCount() + 1);
     }
 
-    /** 글 작성. 게시판 노출 검증. 작성자는 컨트롤러의 @CurrentMember에서 전달된다. */
+    /** 글 작성. 게시판 노출 검증 + 말머리 검증. 작성자는 컨트롤러의 @CurrentMember에서 전달된다. */
     @Transactional
     public Long create(PostCreateRequest request, Member author) {
         Board board = boardService.getVisibleByCode(request.boardCode());
-        Post post = Post.create(board, author, request.title(), request.content());
+        String category = validateCategory(board, request.category());
+        Post post = Post.create(board, author, request.title(), request.content(), category);
+        // 고정공지는 ADMIN만 가능. 일반 회원은 무조건 false(클라이언트 신뢰 금지).
+        if (request.pinned() && author.getRole() == Role.ADMIN) {
+            post.setPinned(true);
+        }
         attachImages(post, request.imageUrls());
         return postRepository.save(post).getId();
+    }
+
+    /**
+     * 말머리 검증: 비어있으면 null. 비어있지 않으면 게시판의 말머리 목록 중 하나여야 한다.
+     * 게시판에 말머리가 없으면 어떤 값도 거부한다.
+     */
+    private String validateCategory(Board board, String category) {
+        if (category == null || category.isBlank()) {
+            return null;
+        }
+        String trimmed = category.trim();
+        List<String> allowed = board.categoryList();
+        if (!allowed.contains(trimmed)) {
+            throw ApiException.badRequest("이 게시판에서 사용할 수 없는 말머리입니다: " + trimmed);
+        }
+        return trimmed;
     }
 
     /** 우리가 저장한 업로드 URL만 첨부로 받아들인다(임의 외부 URL 주입 차단). 상한·빈값 정리. */
@@ -110,11 +131,16 @@ public class PostService {
         }
     }
 
-    /** 글 수정(작성자 본인 또는 ADMIN). 제목·본문 변경 + 이미지 전체 교체. */
+    /** 글 수정(작성자 본인 또는 ADMIN). 제목·본문·말머리 변경 + 이미지 전체 교체. 고정은 ADMIN만. */
     @Transactional
     public void update(Long postId, PostUpdateRequest request, Member member) {
         Post post = loadEditable(postId, member);
-        post.edit(request.title(), request.content());
+        String category = validateCategory(post.getBoard(), request.category());
+        post.edit(request.title(), request.content(), category);
+        // 고정공지 플래그는 ADMIN만 변경 가능. 작성자(비관리자)는 기존 상태를 건드리지 못한다.
+        if (member.getRole() == Role.ADMIN) {
+            post.setPinned(request.pinned());
+        }
         post.clearImages();
         attachImages(post, request.imageUrls());
     }

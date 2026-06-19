@@ -11,13 +11,20 @@ const props = defineProps<{ code: string }>()
 const posts = ref<PostSummary[]>([])
 const boardName = ref<string | null>(null)
 const boardType = ref<BoardType>('GENERAL')
+const categories = ref<string[]>([])
+const activeCategory = ref<string | null>(null) // null = 전체
 const loading = ref(true)
 const error = ref<string | null>(null)
 
+// 말머리 필터(클라이언트). 선택된 말머리가 있으면 해당 글만 남긴다.
+const filteredPosts = computed(() => {
+  if (activeCategory.value === null) return posts.value
+  return posts.value.filter((p) => p.category === activeCategory.value)
+})
 // RANK 형식만 좋아요순으로 보여준다(고추밭 동일). 나머지는 서버 정렬(고정글·최신순) 유지.
 const displayPosts = computed(() => {
-  if (boardType.value !== 'RANK') return posts.value
-  return [...posts.value].sort((a, b) => b.likeCount - a.likeCount)
+  if (boardType.value !== 'RANK') return filteredPosts.value
+  return [...filteredPosts.value].sort((a, b) => b.likeCount - a.likeCount)
 })
 // 랭킹 막대 그래프 기준값(최대 좋아요).
 const maxLikes = computed(() => Math.max(1, ...posts.value.map((p) => p.likeCount)))
@@ -38,6 +45,8 @@ async function load(code: string): Promise<void> {
     const board = boards.find((b) => b.code === code)
     boardName.value = board?.nameKr ?? null
     boardType.value = board?.type ?? 'GENERAL'
+    categories.value = board?.categories ?? []
+    activeCategory.value = null
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : '글을 불러오지 못했습니다'
   } finally {
@@ -56,6 +65,27 @@ watch(() => props.code, load, { immediate: true })
       <h1 class="board-title">{{ boardName ?? '게시판' }}</h1>
     </div>
     <RouterLink :to="{ name: 'post-write', params: { code } }" class="btn">글쓰기</RouterLink>
+  </div>
+
+  <div v-if="categories.length > 0" class="cat-filter" role="tablist" aria-label="말머리 필터">
+    <button
+      type="button"
+      class="cat-chip"
+      :class="{ on: activeCategory === null }"
+      @click="activeCategory = null"
+    >
+      전체
+    </button>
+    <button
+      v-for="c in categories"
+      :key="c"
+      type="button"
+      class="cat-chip"
+      :class="{ on: activeCategory === c }"
+      @click="activeCategory = c"
+    >
+      {{ c }}
+    </button>
   </div>
 
   <p v-if="loading" class="muted">불러오는 중…</p>
@@ -90,7 +120,7 @@ watch(() => props.code, load, { immediate: true })
           <span v-if="boardType === 'VIDEO'" class="play" aria-hidden="true">▶</span>
         </span>
         <span class="card-body">
-          <span class="card-title"><span v-if="post.pinned" class="pin">✦</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
+          <span class="card-title"><span v-if="post.pinned" class="pin">✦</span><span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
           <span class="card-meta muted">
             {{ post.authorNickname }} · {{ formatDateTime(post.createdAt) }} · ♥ {{ post.likeCount }}
           </span>
@@ -104,7 +134,7 @@ watch(() => props.code, load, { immediate: true })
     <li v-for="post in displayPosts" :key="post.id" class="letter">
       <RouterLink :to="{ name: 'post-detail', params: { id: post.id } }" class="letter-link">
         <span class="letter-pin" aria-hidden="true">✦</span>
-        <span class="letter-title">{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
+        <span class="letter-title"><span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
         <span class="letter-meta muted">{{ post.authorNickname }}</span>
         <span class="letter-date muted">{{ formatDateTime(post.createdAt) }}</span>
       </RouterLink>
@@ -116,7 +146,7 @@ watch(() => props.code, load, { immediate: true })
     <li v-for="(post, i) in displayPosts" :key="post.id" class="rank-row">
       <span class="rank-no" :class="{ top: i < 3 }">{{ i + 1 }}</span>
       <RouterLink :to="{ name: 'post-detail', params: { id: post.id } }" class="rank-main">
-        <span class="rank-title">{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
+        <span class="rank-title"><span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
         <span class="rank-bar">
           <span class="rank-bar-fill" :style="{ width: (post.likeCount / maxLikes) * 100 + '%' }"></span>
         </span>
@@ -127,10 +157,11 @@ watch(() => props.code, load, { immediate: true })
 
   <!-- 일반(목록형) -->
   <ul v-else class="post-list panel">
-    <li v-for="post in displayPosts" :key="post.id" class="post-row">
+    <li v-for="post in displayPosts" :key="post.id" class="post-row" :class="{ 'is-pinned': post.pinned }">
       <RouterLink :to="{ name: 'post-detail', params: { id: post.id } }" class="post-link">
-        <span v-if="post.pinned" class="pin" aria-label="고정됨">✦</span>
+        <span v-if="post.pinned" class="notice-badge">공지</span>
         <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" alt="" class="row-thumb" />
+        <span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>
         <span class="post-title">{{ post.title }}</span>
         <span v-if="isNew(post.createdAt)" class="new-badge">NEW</span>
       </RouterLink>
@@ -156,6 +187,55 @@ watch(() => props.code, load, { immediate: true })
 .pin {
   color: var(--gold);
   margin-right: 0.35rem;
+}
+/* 말머리 필터 칩 */
+.cat-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.1rem;
+}
+.cat-chip {
+  font-family: var(--serif, serif);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint, var(--gold-dim));
+  background: transparent;
+  border: 1px solid var(--line, rgba(201, 165, 92, 0.32));
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
+}
+.cat-chip:hover {
+  color: var(--gold-2, var(--gold));
+  border-color: var(--gold-1, var(--gold));
+}
+.cat-chip.on {
+  color: var(--gold-bright, var(--gold));
+  border-color: var(--gold);
+  background: rgba(212, 175, 106, 0.12);
+}
+/* 말머리 접두 표기 */
+.cat-prefix {
+  color: var(--gold-2, var(--gold));
+  font-size: 0.86em;
+  margin-right: 0.3rem;
+}
+/* 고정공지 뱃지 + 행 강조 */
+.notice-badge {
+  flex: none;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  color: #fff;
+  background: #b43c32;
+}
+.post-row.is-pinned {
+  background: rgba(180, 60, 50, 0.06);
 }
 .new-badge {
   display: inline-block;

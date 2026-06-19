@@ -18,6 +18,13 @@ public class SiteSetting {
     /** 씨미 채널 ID 설정 키. */
     public static final String KEY_SEEME_CHANNEL_ID = "seeme.channel_id";
 
+    /** 배너 외부 링크 설정 키. 값은 URL 또는 빈값(null). */
+    public static final String KEY_BANNER_YOUTUBE = "BANNER_YOUTUBE";
+    public static final String KEY_BANNER_X = "BANNER_X";
+    public static final String KEY_BANNER_SEEME = "BANNER_SEEME";
+    public static final String KEY_BANNER_FANCIM = "BANNER_FANCIM";
+    public static final String KEY_BANNER_FANCIMM = "BANNER_FANCIMM";
+
     @Id
     @Column(name = "setting_key", length = 100)
     private String key;

@@ -13,6 +13,7 @@ public record PostDetailResponse(
         String boardNameKr,
         String title,
         String content,
+        String category,
         Long authorId,
         String authorNickname,
         int viewCount,
@@ -31,7 +32,8 @@ public record PostDetailResponse(
         List<String> imageUrls = p.getImages().stream().map(PostImage::getUrl).toList();
         return new PostDetailResponse(
                 p.getId(), p.getBoard().getCode(), p.getBoard().getNameKr(),
-                p.getTitle(), p.getContent(), p.getAuthor().getId(), p.getAuthor().getNickname(),
+                p.getTitle(), p.getContent(), p.getCategory(),
+                p.getAuthor().getId(), p.getAuthor().getNickname(),
                 viewCount, p.getLikeCount(), p.isPinned(), imageUrls,
                 p.getCreatedAt(), p.getUpdatedAt());
     }
