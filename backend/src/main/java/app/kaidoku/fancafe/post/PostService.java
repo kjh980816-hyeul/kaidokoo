@@ -4,6 +4,7 @@ import app.kaidoku.fancafe.board.Board;
 import app.kaidoku.fancafe.board.BoardService;
 import app.kaidoku.fancafe.common.ApiException;
 import app.kaidoku.fancafe.common.Role;
+import app.kaidoku.fancafe.common.html.HtmlSanitizer;
 import app.kaidoku.fancafe.infra.storage.FileStorageService;
 import app.kaidoku.fancafe.member.Member;
 import app.kaidoku.fancafe.post.dto.PostCreateRequest;
@@ -29,13 +30,16 @@ public class PostService {
     private final PostImageRepository postImageRepository;
     private final BoardService boardService;
     private final FileStorageService fileStorage;
+    private final HtmlSanitizer htmlSanitizer;
 
     public PostService(PostRepository postRepository, PostImageRepository postImageRepository,
-                       BoardService boardService, FileStorageService fileStorage) {
+                       BoardService boardService, FileStorageService fileStorage,
+                       HtmlSanitizer htmlSanitizer) {
         this.postRepository = postRepository;
         this.postImageRepository = postImageRepository;
         this.boardService = boardService;
         this.fileStorage = fileStorage;
+        this.htmlSanitizer = htmlSanitizer;
     }
 
     /** 특정 게시판의 공개 글 목록(대표 썸네일 포함). */
@@ -85,7 +89,9 @@ public class PostService {
     public Long create(PostCreateRequest request, Member author) {
         Board board = boardService.getVisibleByCode(request.boardCode());
         String category = validateCategory(board, request.category());
-        Post post = Post.create(board, author, request.title(), request.content(), category);
+        // 본문은 클라이언트 신뢰 금지: 저장 전 서버에서 HTML 정화(XSS 방지). 제목은 평문 유지.
+        String content = htmlSanitizer.sanitize(request.content());
+        Post post = Post.create(board, author, request.title(), content, category);
         // 고정공지는 ADMIN만 가능. 일반 회원은 무조건 false(클라이언트 신뢰 금지).
         if (request.pinned() && author.getRole() == Role.ADMIN) {
             post.setPinned(true);
@@ -136,7 +142,9 @@ public class PostService {
     public void update(Long postId, PostUpdateRequest request, Member member) {
         Post post = loadEditable(postId, member);
         String category = validateCategory(post.getBoard(), request.category());
-        post.edit(request.title(), request.content(), category);
+        // 수정 시에도 동일하게 본문 정화 후 반영(XSS 방지).
+        String content = htmlSanitizer.sanitize(request.content());
+        post.edit(request.title(), content, category);
         // 고정공지 플래그는 ADMIN만 변경 가능. 작성자(비관리자)는 기존 상태를 건드리지 못한다.
         if (member.getRole() == Role.ADMIN) {
             post.setPinned(request.pinned());

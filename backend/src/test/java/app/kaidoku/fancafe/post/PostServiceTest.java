@@ -28,6 +28,7 @@ class PostServiceTest {
 
     @Mock PostRepository postRepository;
     @Mock BoardService boardService;
+    @Mock app.kaidoku.fancafe.common.html.HtmlSanitizer htmlSanitizer;
 
     @InjectMocks PostService postService;
 
@@ -80,6 +81,8 @@ class PostServiceTest {
         Member author = Member.create(Provider.GOOGLE, "u1", "선원");
         ReflectionTestUtils.setField(author, "id", 5L);
         when(boardService.getVisibleByCode("free")).thenReturn(board);
+        // 본문 정화는 별도 단위 테스트(HtmlSanitizerTest)에서 검증. 여기선 통과만 모킹.
+        when(htmlSanitizer.sanitize(any())).thenAnswer(inv -> inv.getArgument(0));
         when(postRepository.save(any(Post.class))).thenAnswer(inv -> {
             Post p = inv.getArgument(0);
             ReflectionTestUtils.setField(p, "id", 42L);

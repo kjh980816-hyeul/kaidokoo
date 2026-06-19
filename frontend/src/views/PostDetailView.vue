@@ -7,6 +7,7 @@ import { fetchComments, createComment, deleteComment } from '@/api/comments'
 import type { Comment, LikeStatus, PostDetail } from '@/api/types'
 import { useMe } from '@/composables/useMe'
 import { formatDateTime } from '@/lib/format'
+import { renderPostHtml } from '@/lib/sanitizeHtml'
 
 const props = defineProps<{ id: string }>()
 const postId = computed(() => Number(props.id))
@@ -156,7 +157,8 @@ function toggleReply(commentId: number): void {
           </button>
         </div>
       </header>
-      <div class="post-body">{{ post.content }}</div>
+      <!-- 본문은 서버 정제 + 클라이언트 DOMPurify 2중 방어 후 렌더(댓글은 평문 유지) -->
+      <div class="post-body" v-html="renderPostHtml(post.content)"></div>
 
       <div v-if="post.imageUrls.length" class="post-images">
         <img v-for="(url, i) in post.imageUrls" :key="url" :src="url" :alt="`첨부 이미지 ${i + 1}`" />
@@ -262,9 +264,58 @@ function toggleReply(commentId: number): void {
   gap: 1rem;
 }
 .post-body {
-  white-space: pre-wrap;
   line-height: 1.9;
   font-size: 1.05rem;
+  word-break: break-word;
+}
+/* HTML 본문 요소별 간격 (gold-navy 테마) */
+.post-body :deep(p) {
+  margin: 0 0 0.9em;
+}
+.post-body :deep(h1),
+.post-body :deep(h2),
+.post-body :deep(h3) {
+  margin: 1.3em 0 0.5em;
+}
+.post-body :deep(h1) { font-size: 1.7rem; }
+.post-body :deep(h2) { font-size: 1.5rem; }
+.post-body :deep(h3) { font-size: 1.25rem; }
+.post-body :deep(ul),
+.post-body :deep(ol) {
+  margin: 0 0 0.9em;
+  padding-left: 1.6em;
+}
+.post-body :deep(li) {
+  margin: 0.2em 0;
+}
+.post-body :deep(blockquote) {
+  margin: 0 0 0.9em;
+  padding: 0.2em 0 0.2em 1em;
+  border-left: 3px solid var(--gold-1);
+  color: var(--ink-body);
+}
+.post-body :deep(a) {
+  color: var(--gold-3);
+  text-decoration: underline;
+}
+.post-body :deep(a:hover) {
+  color: var(--gold-2);
+}
+.post-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+/* 임베드 영상 16:9 반응형 */
+.post-body :deep(iframe) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  margin: 1em 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
 }
 .post-images {
   display: flex;

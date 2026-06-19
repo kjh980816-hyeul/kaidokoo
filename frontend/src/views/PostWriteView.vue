@@ -5,6 +5,17 @@ import { createPost, updatePost, uploadPostImage, fetchPost } from '@/api/posts'
 import { fetchBoards } from '@/api/boards'
 import { useMe } from '@/composables/useMe'
 import { HttpError } from '@/api/http'
+import RichEditor from '@/components/RichEditor.vue'
+
+// 본문은 이제 HTML. 태그를 벗기고 공백만 남으면 빈 본문으로 간주한다.
+function isContentEmpty(html: string): boolean {
+  const text = html
+    .replace(/<br\s*\/?>/gi, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, '')
+  return text.length === 0
+}
 
 // 작성 모드는 code(게시판), 수정 모드는 id(글)로 진입한다.
 const props = defineProps<{ code?: string; id?: string }>()
@@ -104,7 +115,7 @@ function removeImage(index: number): void {
 
 async function submit(): Promise<void> {
   error.value = null
-  if (!title.value.trim() || !content.value.trim()) {
+  if (!title.value.trim() || isContentEmpty(content.value)) {
     error.value = '제목과 본문을 모두 입력해주세요.'
     return
   }
@@ -114,7 +125,7 @@ async function submit(): Promise<void> {
     if (editing.value) {
       await updatePost(postId.value, {
         title: title.value.trim(),
-        content: content.value.trim(),
+        content: content.value,
         imageUrls: images.value,
         category: cat,
         pinned: pinned.value,
@@ -124,7 +135,7 @@ async function submit(): Promise<void> {
       const { id } = await createPost({
         boardCode: boardCode.value,
         title: title.value.trim(),
-        content: content.value.trim(),
+        content: content.value,
         imageUrls: images.value,
         category: cat,
         pinned: pinned.value,
@@ -164,10 +175,10 @@ async function submit(): Promise<void> {
         <span class="field-label">제목</span>
         <input v-model="title" type="text" maxlength="200" placeholder="제목을 입력하세요" />
       </label>
-      <label>
+      <div class="field">
         <span class="field-label">본문</span>
-        <textarea v-model="content" rows="12" placeholder="안개 너머로 띄울 이야기를 적어주세요" />
-      </label>
+        <RichEditor v-model="content" />
+      </div>
 
       <div class="field">
         <span class="field-label">사진 첨부 <span class="hint">· JPG·PNG·WEBP·GIF · 2MB 이하 · 최대 {{ MAX_IMAGES }}장</span></span>
