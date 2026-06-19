@@ -175,6 +175,11 @@ export interface BoardUpdateRequest {
   categories: string[]
 }
 
+// 공개 통계(비로그인 노출). 백엔드 PublicStatsResponse와 1:1.
+export interface PublicStats {
+  memberCount: number
+}
+
 // 운영 대시보드 통계. 백엔드 DashboardStatsResponse와 1:1.
 export interface DashboardStats {
   totalMembers: number

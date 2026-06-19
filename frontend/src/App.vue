@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRouter } from 'vue-router'
 import CelestialBackdrop from '@/components/CelestialBackdrop.vue'
 import Emblem from '@/components/Emblem.vue'
 import { logout, loginUrl } from '@/api/auth'
+import { fetchPublicStats } from '@/api/stats'
 import { useMe } from '@/composables/useMe'
 
 const LOADER_MS = 2200 // 로딩 인트로 노출 시간(시안 톤)
@@ -42,6 +43,9 @@ function replayLoader(): void {
 const router = useRouter()
 const { me, load: loadMe, clear: clearMe } = useMe()
 
+// 공개 통계 — 사이드바 상단 "선원 N명". 실패해도 사이트엔 영향 없게 조용히 무시.
+const memberCount = ref<number | null>(null)
+
 async function onLogout(): Promise<void> {
   try {
     await logout()
@@ -54,6 +58,9 @@ async function onLogout(): Promise<void> {
 onMounted(() => {
   runLoader()
   void loadMe()
+  fetchPublicStats()
+    .then((s) => (memberCount.value = s.memberCount))
+    .catch(() => {}) // 통계 실패는 무시(비핵심)
 })
 </script>
 
@@ -102,6 +109,10 @@ onMounted(() => {
 
       <div class="body">
         <aside class="sidenav" aria-label="주요 메뉴">
+          <div v-if="memberCount !== null" class="sn-count" title="현재 활동 중인 선원 수">
+            <span class="sn-count-label">함께한 선원</span>
+            <span class="sn-count-value gold-text">{{ memberCount.toLocaleString() }}<span class="sn-count-unit">명</span></span>
+          </div>
           <RouterLink to="/" class="sn-link">홈</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#boards' }" class="sn-link">게시판</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#attend' }" class="sn-link">출석</RouterLink>
@@ -300,6 +311,31 @@ onMounted(() => {
   border-left-color: var(--gold-1);
   background: rgba(201, 165, 92, 0.06);
 }
+/* 사이드바 상단 선원 수 */
+.sn-count {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.2rem 0.7rem 0.7rem;
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(201, 165, 92, 0.18);
+}
+.sn-count-label {
+  font-family: var(--serif);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+.sn-count-value {
+  font-family: var(--serif);
+  font-size: 22px;
+  line-height: 1;
+}
+.sn-count-unit {
+  font-size: 12px;
+  margin-left: 0.1rem;
+}
 /* 외부링크 배너(사이드바) */
 .sn-banner {
   display: flex;
@@ -351,6 +387,12 @@ onMounted(() => {
     gap: 0.3rem;
     border-bottom: 1px solid var(--line);
     padding-bottom: 0.6rem;
+  }
+  .sn-count {
+    flex-basis: 100%;
+    border-bottom: none;
+    padding-bottom: 0.2rem;
+    margin-bottom: 0;
   }
   .sn-link {
     border-left: none;
