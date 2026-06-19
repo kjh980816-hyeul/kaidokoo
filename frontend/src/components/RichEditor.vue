@@ -151,8 +151,20 @@ function applyFontSize(event: Event): void {
 const FONT_FAMILIES: { label: string; value: string }[] = [
   { label: '명조', value: "'Nanum Myeongjo', serif" },
   { label: '고딕', value: "'Noto Sans KR', sans-serif" },
-  { label: '손글씨', value: "'Nanum Pen Script', cursive" },
+  { label: '나눔고딕', value: "'Nanum Gothic', sans-serif" },
+  { label: '고운바탕', value: "'Gowun Batang', serif" },
+  { label: '도현', value: "'Do Hyeon', sans-serif" },
+  { label: '주아', value: "'Jua', sans-serif" },
+  { label: '블랙한산스', value: "'Black Han Sans', sans-serif" },
+  { label: '손글씨(펜)', value: "'Nanum Pen Script', cursive" },
+  { label: '붓글씨', value: "'Nanum Brush Script', cursive" },
   { label: '둥근손글씨', value: "'Gaegu', cursive" },
+  { label: '감자꽃', value: "'Gamja Flower', cursive" },
+  { label: '하이멜로디', value: "'Hi Melody', cursive" },
+  { label: '기랑해랑', value: "'Kirang Haerang', cursive" },
+  { label: '연성', value: "'Yeon Sung', cursive" },
+  { label: '독도', value: "'Dokdo', cursive" },
+  { label: '푸어스토리', value: "'Poor Story', cursive" },
 ]
 
 function applyFontFamily(event: Event): void {
