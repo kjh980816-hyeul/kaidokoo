@@ -77,7 +77,7 @@ async function onCheckIn(): Promise<void> {
         <span>{{ live?.live ? 'ON AIR · 지금 항해 중' : 'OFF AIR · 정박 중' }}</span>
       </div>
       <div class="lb-sub">
-        {{ live?.live ? live.title || '카이도쿠 선장 방송 중' : '다음 항해를 기다려 주세요' }}
+        {{ live?.live ? live.title || '카이조쿠 선장 방송 중' : '다음 항해를 기다려 주세요' }}
       </div>
     </div>
     <a
@@ -96,7 +96,7 @@ async function onCheckIn(): Promise<void> {
     <span class="floaty f2"><Emblem /></span>
     <span class="floaty f3"><Emblem /></span>
 
-    <div class="hero-emblem"><Emblem title="카이도쿠 팬카페 엠블럼" /></div>
+    <div class="hero-emblem"><Emblem title="카이조쿠 팬카페 엠블럼" /></div>
     <p class="hero-eyebrow">Celestial Navigation Fan Club</p>
     <h1 class="hero-title gold-text">
       CAPTAIN'S<br />STARCHART<span class="kr">선장의 별바다 항해 일지</span>
@@ -397,7 +397,10 @@ async function onCheckIn(): Promise<void> {
 /* ── 게시판 그리드 ── */
 .board-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* 고정 폭 트랙 + 중앙정렬 → 마지막 줄이 덜 차도 가운데로 모인다
+     (1fr이면 트랙이 폭을 다 먹어 마지막 줄이 왼쪽으로 붙음). */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 340px));
+  justify-content: center;
   gap: clamp(16px, 2vw, 24px);
 }
 .board-card {
@@ -462,9 +465,11 @@ async function onCheckIn(): Promise<void> {
 }
 .bc-desc {
   font-family: var(--kr-serif);
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.85;
-  color: var(--ink-faint);
+  /* 너무 얇고 흐려 안 보인다는 피드백 → 본문 톤으로 올리고 굵기 보강 */
+  color: var(--ink-body);
+  font-weight: 500;
   margin: 14px 0 0;
   letter-spacing: 0.04em;
 }

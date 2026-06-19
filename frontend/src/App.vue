@@ -274,12 +274,14 @@ onMounted(() => {
 .sidenav {
   flex: none;
   width: 116px;
+  /* 좌측 세로 중앙 고정: 스크롤해도 뷰포트 수직 중앙에 머문다.
+     top:50vh로 붙고 translateY(-50%)로 자기 높이의 절반만큼 끌어올림. */
   position: sticky;
-  top: 1.5rem;
+  top: 50vh;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding-top: clamp(1.5rem, 1rem + 3vw, 3.5rem);
   z-index: 20;
 }
 .sn-link {
@@ -314,6 +316,9 @@ onMounted(() => {
     flex-wrap: wrap;
     width: auto;
     position: static;
+    /* 데스크톱 세로중앙 고정값 해제(가로 메뉴로 전환) */
+    top: auto;
+    transform: none;
     padding-top: 1rem;
     gap: 0.3rem;
     border-bottom: 1px solid var(--line);
