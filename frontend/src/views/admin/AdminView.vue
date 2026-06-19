@@ -75,13 +75,33 @@ const liveForm = ref({
   channelId: '',
 })
 
-// 배너: 이름+링크 자유 추가. 빈 행 1개를 기본 제공.
+// 배너: 이름+링크+아이콘 자유 추가. 빈 행 1개를 기본 제공.
 const bannerItems = ref<BannerItem[]>([])
+const bannerIconBusy = ref<number | null>(null) // 아이콘 업로드 중인 행 인덱스
 function addBannerRow(): void {
-  bannerItems.value.push({ label: '', url: '' })
+  bannerItems.value.push({ label: '', url: '', iconUrl: null })
 }
 function removeBannerRow(i: number): void {
   bannerItems.value.splice(i, 1)
+}
+async function onPickBannerIcon(i: number, event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  bannerIconBusy.value = i
+  try {
+    const { url } = await uploadPostImage(file)
+    bannerItems.value[i].iconUrl = url
+    notify('아이콘을 올렸습니다. 저장을 눌러 반영하세요.')
+  } catch (e: unknown) {
+    notify(e instanceof HttpError ? e.message : '아이콘 업로드에 실패했습니다.')
+  } finally {
+    bannerIconBusy.value = null
+    input.value = ''
+  }
+}
+function clearBannerIcon(i: number): void {
+  bannerItems.value[i].iconUrl = null
 }
 
 // 로고
@@ -122,7 +142,7 @@ async function loadAll(): Promise<void> {
       streamUrl: liveStatus.streamUrl ?? '',
       channelId: liveStatus.channelId ?? '',
     }
-    bannerItems.value = bannerList.length > 0 ? bannerList : [{ label: '', url: '' }]
+    bannerItems.value = bannerList.length > 0 ? bannerList : [{ label: '', url: '', iconUrl: null }]
     logoUrl.value = branding.logoUrl
   } catch (e: unknown) {
     // 권한 문제(401/403)일 때만 패널을 잠근다. 일시적 오류는 재시도 가능해야 한다.
@@ -267,10 +287,10 @@ async function submitBanner(): Promise<void> {
   try {
     // 이름·링크 둘 다 있는 행만 저장(빈 행 무시).
     const items = bannerItems.value
-      .map((it) => ({ label: it.label.trim(), url: it.url.trim() }))
+      .map((it) => ({ label: it.label.trim(), url: it.url.trim(), iconUrl: it.iconUrl }))
       .filter((it) => it.label !== '' && it.url !== '')
     const saved = await updateBannerLinks(items)
-    bannerItems.value = saved.length > 0 ? saved : [{ label: '', url: '' }]
+    bannerItems.value = saved.length > 0 ? saved : [{ label: '', url: '', iconUrl: null }]
     notify('외부링크 배너를 저장했습니다.')
   } catch (e: unknown) {
     notify(errOf(e))
@@ -519,7 +539,27 @@ async function resetLogo(): Promise<void> {
           <div v-for="(item, i) in bannerItems" :key="i" class="row banner-row">
             <label>이름<input v-model="item.label" maxlength="30" placeholder="유튜브" /></label>
             <label>링크<input v-model="item.url" placeholder="https://..." /></label>
-            <button type="button" class="link-btn danger banner-del" @click="removeBannerRow(i)">삭제</button>
+            <div class="banner-icon-cell">
+              <span class="field-cap">아이콘</span>
+              <div class="banner-icon-controls">
+                <span class="banner-icon-prev">
+                  <img v-if="item.iconUrl" :src="item.iconUrl" alt="" />
+                  <span v-else class="muted tiny">기본</span>
+                </span>
+                <label class="link-btn upload-btn">
+                  {{ bannerIconBusy === i ? '올리는 중…' : '업로드' }}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    hidden
+                    :disabled="bannerIconBusy === i"
+                    @change="onPickBannerIcon(i, $event)"
+                  />
+                </label>
+                <button v-if="item.iconUrl" type="button" class="link-btn danger" @click="clearBannerIcon(i)">해제</button>
+              </div>
+            </div>
+            <button type="button" class="link-btn danger banner-del" @click="removeBannerRow(i)">행 삭제</button>
           </div>
           <div class="form-actions">
             <button type="button" class="btn ghost" @click="addBannerRow">+ 배너 추가</button>
@@ -743,6 +783,39 @@ async function resetLogo(): Promise<void> {
 .banner-del {
   padding-bottom: 0.5rem;
   white-space: nowrap;
+}
+.banner-icon-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.field-cap {
+  font-size: 0.78rem;
+  color: var(--gold-dim);
+}
+.banner-icon-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.banner-icon-prev {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.banner-icon-prev img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.tiny {
+  font-size: 0.62rem;
 }
 .logo-preview {
   display: flex;

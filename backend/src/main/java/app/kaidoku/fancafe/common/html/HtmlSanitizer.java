@@ -4,6 +4,7 @@ import app.kaidoku.fancafe.common.ApiException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.TextNode;
 import org.jsoup.safety.Safelist;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,7 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 게시글 본문(리치 텍스트) HTML을 서버에서 정화한다. XSS 방지(HARD 제약).
@@ -95,7 +97,34 @@ public class HtmlSanitizer {
                 el.appendChild(new Element("br"));
             }
         }
+        // 연속 공백 보존은 반드시 Jsoup.clean(공백 축소) 이전에 해야 한다 → nbsp로 바꿔두면 살아남는다.
+        preserveSpaces(doc);
         return doc.body().html();
+    }
+
+    /** 2칸 이상 연속 공백 매칭(텍스트 충실도 보존용). */
+    private static final Pattern MULTI_SPACE = Pattern.compile(" {2,}");
+    /** 줄바꿈 없는 공백(U+00A0). */
+    private static final String NBSP = " ";
+
+    /**
+     * 텍스트 노드의 연속 공백을 보존한다. HTML은 연속 공백을 1칸으로 축소하므로
+     * 첫 칸만 일반 공백으로 두고 나머지는 nbsp로 바꿔 표시·재편집에서 띄어쓰기가 유지되게 한다.
+     * (포맷용 순수 공백 노드는 건드리지 않는다.)
+     */
+    private void preserveSpaces(Document doc) {
+        doc.body().traverse((node, depth) -> {
+            if (!(node instanceof TextNode textNode)) {
+                return;
+            }
+            String text = textNode.getWholeText();
+            if (text.isBlank() || text.indexOf("  ") < 0) {
+                return;
+            }
+            String replaced = MULTI_SPACE.matcher(text)
+                    .replaceAll(match -> " " + NBSP.repeat(match.group().length() - 1));
+            textNode.text(replaced);
+        });
     }
 
     private Safelist buildSafelist() {

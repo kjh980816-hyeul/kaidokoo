@@ -62,10 +62,11 @@ export interface PostUpdateRequest {
   pinned: boolean
 }
 
-// 외부링크 배너 항목(관리자가 이름+링크 자유 추가).
+// 외부링크 배너 항목(관리자가 이름+링크+아이콘 자유 추가). iconUrl이 null이면 기본 엠블럼.
 export interface BannerItem {
   label: string
   url: string
+  iconUrl: string | null
 }
 
 // 사이트 브랜딩(헤더 로고). logoUrl이 null이면 기본 엠블럼.

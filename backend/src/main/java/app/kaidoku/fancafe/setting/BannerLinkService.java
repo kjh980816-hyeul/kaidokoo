@@ -55,10 +55,11 @@ public class BannerLinkService {
             for (BannerItem item : items) {
                 String label = item.label() == null ? "" : item.label().trim();
                 String url = item.url() == null ? "" : item.url().trim();
+                String icon = item.iconUrl() == null ? "" : item.iconUrl().trim();
                 if (label.isEmpty() && url.isEmpty()) {
                     continue; // 빈 줄은 무시
                 }
-                normalized.add(new BannerItem(validateLabel(label), validateUrl(url)));
+                normalized.add(new BannerItem(validateLabel(label), validateUrl(url), validateIcon(icon)));
             }
         }
         if (normalized.size() > MAX_ITEMS) {
@@ -85,7 +86,7 @@ public class BannerLinkService {
     private void addLegacy(List<BannerItem> list, String label, String key) {
         String url = read(key);
         if (url != null) {
-            list.add(new BannerItem(label, url));
+            list.add(new BannerItem(label, url, null));
         }
     }
 
@@ -114,6 +115,22 @@ public class BannerLinkService {
             throw ApiException.badRequest("링크는 http:// 또는 https:// 로 시작해야 합니다: " + url);
         }
         return url;
+    }
+
+    /** 아이콘은 선택. 비었으면 null. 있으면 업로드 경로(/uploads/...) 또는 http(s)만 허용. */
+    private String validateIcon(String icon) {
+        if (icon.isEmpty()) {
+            return null;
+        }
+        if (icon.length() > MAX_URL_LENGTH) {
+            throw ApiException.badRequest("아이콘 URL이 너무 깁니다.");
+        }
+        boolean ok = icon.startsWith("/uploads/")
+                || icon.startsWith("http://") || icon.startsWith("https://");
+        if (!ok) {
+            throw ApiException.badRequest("아이콘은 업로드 이미지(/uploads/...) 또는 http(s) URL이어야 합니다.");
+        }
+        return icon;
     }
 
     private void upsert(String key, String value) {

@@ -93,6 +93,17 @@ class HtmlSanitizerTest {
     }
 
     @Test
+    void preservesConsecutiveSpaces() {
+        // 에디터에서 친 연속 공백이 HTML 축소로 사라지지 않게 nbsp(U+00A0)로 보존돼야 한다.
+        // 입력 "가" + 일반공백 4칸 + "나" → 첫 칸은 일반 공백, 나머지 3칸은 nbsp.
+        String out = sanitizer.sanitize("<p>가" + " ".repeat(4) + "나</p>");
+        // nbsp는 직렬화에서 &nbsp; 엔티티 또는 U+00A0 문자로 나올 수 있다(둘 다 허용).
+        long nbsp = out.chars().filter(c -> c == 0x00A0).count()
+                + (out.split("&nbsp;", -1).length - 1);
+        assertThat(nbsp).isEqualTo(3);
+    }
+
+    @Test
     void preservesLegacyPlainText() {
         String out = sanitizer.sanitize("그냥 평문입니다. 태그 없음.");
         assertThat(out).contains("그냥 평문입니다. 태그 없음.");

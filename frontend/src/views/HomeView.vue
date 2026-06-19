@@ -169,7 +169,10 @@ async function onCheckIn(): Promise<void> {
       rel="noopener"
       class="link-pill"
     >
-      <span class="link-pill-ico" aria-hidden="true"><Emblem /></span>{{ item.label }}
+      <span class="link-pill-ico" aria-hidden="true">
+        <img v-if="item.iconUrl" :src="item.iconUrl" alt="" />
+        <Emblem v-else />
+      </span>{{ item.label }}
     </a>
   </section>
 
@@ -601,10 +604,19 @@ async function onCheckIn(): Promise<void> {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 18px rgba(201, 165, 92, 0.12);
 }
 .link-pill-ico {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   color: var(--gold-2);
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.link-pill-ico img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 /* ── 출석 위젯 ── */
