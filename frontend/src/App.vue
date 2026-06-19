@@ -111,7 +111,7 @@ onMounted(() => {
         <aside class="sidenav" aria-label="주요 메뉴">
           <div v-if="memberCount !== null" class="sn-count" title="현재 활동 중인 선원 수">
             <span class="sn-count-label">함께한 선원</span>
-            <span class="sn-count-value gold-text">{{ memberCount.toLocaleString() }}<span class="sn-count-unit">명</span></span>
+            <span class="sn-count-value">{{ memberCount.toLocaleString() }}<span class="sn-count-unit">명</span></span>
           </div>
           <RouterLink to="/" class="sn-link">홈</RouterLink>
           <RouterLink :to="{ path: '/', hash: '#boards' }" class="sn-link">게시판</RouterLink>
@@ -321,20 +321,23 @@ onMounted(() => {
   border-bottom: 1px solid rgba(201, 165, 92, 0.18);
 }
 .sn-count-label {
-  font-family: var(--serif);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  font-size: 10px;
-  color: var(--ink-faint);
+  font-family: var(--kr-serif, serif);
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-body);
 }
 .sn-count-value {
-  font-family: var(--serif);
-  font-size: 22px;
+  font-family: var(--kr-serif, serif);
+  font-size: 26px;
+  font-weight: 700;
   line-height: 1;
+  color: var(--gold-2);
 }
 .sn-count-unit {
-  font-size: 12px;
-  margin-left: 0.1rem;
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 0.12rem;
 }
 /* 외부링크 배너(사이드바) */
 .sn-banner {
