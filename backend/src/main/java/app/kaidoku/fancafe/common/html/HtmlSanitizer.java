@@ -34,6 +34,10 @@ public class HtmlSanitizer {
     private static final String[] DANGEROUS_STYLE_TOKENS = {
             "javascript:", "expression(", "url(", "@import", "<"};
 
+    /** 비어 있으면 <br>로 보존할 블록 태그(Jsoup Cleaner의 빈 블록 제거 회피). */
+    private static final Set<String> BLANK_PRESERVE_TAGS = Set.of(
+            "p", "h1", "h2", "h3", "li", "blockquote");
+
     /** iframe src 호스트 화이트리스트(영상 임베드 한정). */
     private static final Set<String> ALLOWED_IFRAME_HOSTS = Set.of(
             "youtube.com", "www.youtube.com",
@@ -56,8 +60,12 @@ public class HtmlSanitizer {
             return "";
         }
 
+        // 0차: 빈 블록(<p></p> 등)에 <br> 주입. TipTap이 빈 줄(엔터)을 빈 문단으로 내보내는데
+        //      Jsoup Cleaner는 내용 없는 블록을 제거해 줄바꿈이 사라진다 → 미리 살려둔다.
+        String prepared = preserveBlankBlocks(rawHtml);
+
         // 1차: Jsoup 화이트리스트 정화. baseUri 빈 문자열 → 상대경로는 프로토콜 강제에 걸려 제거.
-        String cleaned = Jsoup.clean(rawHtml, "", safelist);
+        String cleaned = Jsoup.clean(prepared, "", safelist);
 
         // 2차: Jsoup가 그대로 둔 style/iframe/a 하드닝.
         Document doc = Jsoup.parseBodyFragment(cleaned);
@@ -71,6 +79,21 @@ public class HtmlSanitizer {
             throw ApiException.badRequest("본문이 너무 깁니다. 허용 길이를 초과했습니다.");
         }
         return result;
+    }
+
+    /**
+     * 내용 없는 빈 블록 요소에 {@code <br>}를 넣어 후속 Jsoup 정화에서 살아남게 한다.
+     * (TipTap은 빈 줄을 {@code <p></p>}로 출력하고, Jsoup Cleaner는 빈 블록을 제거한다.)
+     */
+    private String preserveBlankBlocks(String rawHtml) {
+        Document doc = Jsoup.parseBodyFragment(rawHtml);
+        for (Element el : doc.select(String.join(", ", BLANK_PRESERVE_TAGS))) {
+            boolean hasContent = el.hasText() || !el.select("img, br, iframe").isEmpty();
+            if (!hasContent) {
+                el.appendChild(new Element("br"));
+            }
+        }
+        return doc.body().html();
     }
 
     private Safelist buildSafelist() {

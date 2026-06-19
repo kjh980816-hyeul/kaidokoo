@@ -82,6 +82,17 @@ class HtmlSanitizerTest {
     }
 
     @Test
+    void preservesBlankParagraphsAsLineBreaks() {
+        // TipTap은 빈 줄(엔터)을 내용 없는 <p></p>로 내보낸다.
+        // Jsoup Cleaner가 빈 블록을 지워버리면 줄바꿈이 사라지므로 <br>로 보존해야 한다.
+        String out = sanitizer.sanitize("<p>첫 줄</p><p></p><p></p><p>둘째 줄</p>");
+        assertThat(out).contains("첫 줄");
+        assertThat(out).contains("둘째 줄");
+        int brCount = out.split("<br", -1).length - 1;
+        assertThat(brCount).isGreaterThanOrEqualTo(2);
+    }
+
+    @Test
     void preservesLegacyPlainText() {
         String out = sanitizer.sanitize("그냥 평문입니다. 태그 없음.");
         assertThat(out).contains("그냥 평문입니다. 태그 없음.");
