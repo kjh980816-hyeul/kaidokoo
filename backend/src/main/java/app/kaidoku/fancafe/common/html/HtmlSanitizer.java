@@ -27,8 +27,8 @@ public class HtmlSanitizer {
 
     /** style 속성에서 살아남는 CSS 속성 화이트리스트. */
     private static final Set<String> ALLOWED_STYLE_PROPS = Set.of(
-            "color", "background-color", "font-size", "text-align", "font-weight",
-            "font-style", "text-decoration");
+            "color", "background-color", "font-size", "font-family", "text-align",
+            "font-weight", "font-style", "text-decoration");
 
     /** style 값에 들어 있으면 통째로 거르는 위험 토큰. */
     private static final String[] DANGEROUS_STYLE_TOKENS = {

@@ -5,6 +5,8 @@
    ============================================================ */
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Nanum+Myeongjo:wght@400;700;800&display=swap');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+/* 글쓰기 폰트 선택용(손글씨/둥근/고딕). 본문·에디터 어디서든 렌더되도록 전역 로드. */
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@400;500;700&display=swap');
 
 :root {
   /* 배경 — 심야 네이비에서 거의 검정 가장자리로 */

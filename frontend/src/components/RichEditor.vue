@@ -21,6 +21,10 @@ declare module '@tiptap/core' {
       setFontSize: (size: string) => ReturnType
       unsetFontSize: () => ReturnType
     }
+    fontFamily: {
+      setFontFamily: (family: string) => ReturnType
+      unsetFontFamily: () => ReturnType
+    }
   }
 }
 
@@ -60,6 +64,43 @@ const FontSize = Extension.create({
   },
 })
 
+// 커스텀 FontFamily: FontSize와 동일 패턴. textStyle에 인라인 style="font-family:..."를 건다.
+const FontFamily = Extension.create({
+  name: 'fontFamily',
+  addOptions() {
+    return { types: ['textStyle'] }
+  },
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types as string[],
+        attributes: {
+          fontFamily: {
+            default: null,
+            parseHTML: (element: HTMLElement) => element.style.fontFamily || null,
+            renderHTML: (attributes: { fontFamily?: string | null }) => {
+              if (!attributes.fontFamily) return {}
+              return { style: `font-family: ${attributes.fontFamily}` }
+            },
+          },
+        },
+      },
+    ]
+  },
+  addCommands() {
+    return {
+      setFontFamily:
+        (family: string) =>
+        ({ chain }) =>
+          chain().setMark('textStyle', { fontFamily: family }).run(),
+      unsetFontFamily:
+        () =>
+        ({ chain }) =>
+          chain().setMark('textStyle', { fontFamily: null }).removeEmptyTextStyle().run(),
+    }
+  },
+})
+
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
@@ -68,6 +109,7 @@ const editor = useEditor({
     TextStyle,
     Color,
     FontSize,
+    FontFamily,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer nofollow' } }),
     Youtube.configure({ controls: true, nocookie: true, modestBranding: true }),
@@ -104,6 +146,20 @@ function applyFontSize(event: Event): void {
   if (!editor.value) return
   if (value) editor.value.chain().focus().setFontSize(value).run()
   else editor.value.chain().focus().unsetFontSize().run()
+}
+
+const FONT_FAMILIES: { label: string; value: string }[] = [
+  { label: '명조', value: "'Nanum Myeongjo', serif" },
+  { label: '고딕', value: "'Noto Sans KR', sans-serif" },
+  { label: '손글씨', value: "'Nanum Pen Script', cursive" },
+  { label: '둥근손글씨', value: "'Gaegu', cursive" },
+]
+
+function applyFontFamily(event: Event): void {
+  const value = (event.target as HTMLSelectElement).value
+  if (!editor.value) return
+  if (value) editor.value.chain().focus().setFontFamily(value).run()
+  else editor.value.chain().focus().unsetFontFamily().run()
 }
 
 function applyColor(event: Event): void {
@@ -185,6 +241,11 @@ function isAlign(value: 'left' | 'center' | 'right'): boolean {
         @click="editor.chain().focus().toggleBlockquote().run()">＂ 인용</button>
 
       <span class="tb-sep" aria-hidden="true"></span>
+
+      <select class="tb-select" title="글씨체" @change="applyFontFamily">
+        <option value="">글씨체</option>
+        <option v-for="f in FONT_FAMILIES" :key="f.value" :value="f.value" :style="{ fontFamily: f.value }">{{ f.label }}</option>
+      </select>
 
       <select class="tb-select" title="글자 크기" @change="applyFontSize">
         <option value="">크기</option>
