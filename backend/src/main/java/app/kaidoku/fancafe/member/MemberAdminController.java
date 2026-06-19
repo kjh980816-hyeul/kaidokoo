@@ -57,7 +57,7 @@ public class MemberAdminController {
                                              @PathVariable Long id,
                                              @Valid @RequestBody ChangeStatusRequest request) {
         AdminGuard.require(admin);
-        memberService.changeStatus(id, request.status());
+        memberService.changeStatus(admin.getId(), id, request.status());
         return ResponseEntity.noContent().build();
     }
 }

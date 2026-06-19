@@ -21,4 +21,8 @@ public interface MemberSessionRepository extends JpaRepository<MemberSession, St
     /** 만료 세션 일괄 정리(스케줄 작업용). */
     @Modifying
     int deleteByExpiresAtBefore(LocalDateTime cutoff);
+
+    /** 특정 회원의 모든 세션 삭제(정지/탈퇴 시 강제 로그아웃). */
+    @Modifying
+    int deleteByMember_Id(Long memberId);
 }

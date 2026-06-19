@@ -40,6 +40,11 @@ const live = ref<LiveStatus | null>(null)
 
 const ROLES: Role[] = ['GUEST', 'MEMBER', 'ADMIN']
 const STATUSES: MemberStatus[] = ['ACTIVE', 'SUSPENDED', 'WITHDRAWN']
+const STATUS_LABELS: Record<MemberStatus, string> = {
+  ACTIVE: '정상',
+  SUSPENDED: '활동정지',
+  WITHDRAWN: '강제탈퇴',
+}
 
 function emptyBoard(): BoardCreateRequest {
   return { code: '', nameKr: '', nameEn: null, description: null, sortOrder: 0, type: 'GENERAL', writeRole: 'MEMBER', categories: [] }
@@ -217,10 +222,15 @@ async function onChangeRole(m: MemberAdmin, role: Role): Promise<void> {
   }
 }
 async function onChangeStatus(m: MemberAdmin, status: MemberStatus): Promise<void> {
+  // 정지·탈퇴는 즉시 로그아웃되는 강한 제재 → 실수 방지 확인. (취소 시 select 원복 위해 목록 재로딩)
+  if (status !== 'ACTIVE' && !window.confirm(`${m.nickname} 님을 '${STATUS_LABELS[status]}' 처리할까요? 즉시 로그아웃되며 로그인이 차단됩니다.`)) {
+    members.value = await fetchAdminMembers()
+    return
+  }
   try {
     await changeMemberStatus(m.id, status)
     members.value = await fetchAdminMembers()
-    notify(`${m.nickname} 상태를 ${status}로 변경했습니다.`)
+    notify(`${m.nickname} 상태를 '${STATUS_LABELS[status]}'(으)로 변경했습니다.`)
   } catch (e: unknown) {
     notify(errOf(e))
   }
@@ -395,7 +405,7 @@ async function submitBanner(): Promise<void> {
               </td>
               <td>
                 <select :value="m.status" @change="onChangeStatus(m, ($event.target as HTMLSelectElement).value as MemberStatus)">
-                  <option v-for="s in STATUSES" :key="s" :value="s">{{ s }}</option>
+                  <option v-for="s in STATUSES" :key="s" :value="s">{{ STATUS_LABELS[s] }}</option>
                 </select>
               </td>
             </tr>
