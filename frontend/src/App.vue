@@ -285,11 +285,13 @@ onMounted(() => {
 .sidenav {
   flex: none;
   width: 116px;
-  /* 좌측 세로 중앙 고정: 스크롤해도 뷰포트 수직 중앙에 머문다.
-     top:50vh로 붙고 translateY(-50%)로 자기 높이의 절반만큼 끌어올림. */
+  /* 콘텐츠 상단에 맞춰 고정. 뷰포트 세로 중앙(top:50vh) 방식은 콘텐츠가 짧은
+     게시판 페이지에서 sticky가 짧은 컨테이너에 갇혀 위치가 어긋났다 → 모든 페이지에서
+     본문(site-main) 상단 패딩과 같은 높이에서 시작하고, 스크롤 시 같은 오프셋으로 고정. */
   position: sticky;
-  top: 50vh;
-  transform: translateY(-50%);
+  top: clamp(1.5rem, 1rem + 3vw, 3.5rem);
+  align-self: flex-start;
+  padding-top: clamp(1.5rem, 1rem + 3vw, 3.5rem);
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
