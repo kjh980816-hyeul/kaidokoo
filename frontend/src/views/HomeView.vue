@@ -18,7 +18,7 @@ const live = ref<LiveStatus | null>(null)
 const attendance = ref<Attendance | null>(null)
 const attendanceBusy = ref(false)
 
-// 외부 링크 배너(게시판↔출석 사이). 관리자가 자유 추가. 실패해도 페이지를 막지 않는다(폴백 = 미노출).
+// 외부 링크 배너(히어로↔항해 기록실 사이). 관리자가 자유 추가. 실패해도 페이지를 막지 않는다(폴백 = 미노출).
 const bannerItems = ref<BannerItem[]>([])
 
 // 이달 달력: 1일의 요일만큼 앞을 비우고, 1~말일까지 칸을 만든다. 출석한 날은 점등.
@@ -118,6 +118,23 @@ async function onCheckIn(): Promise<void> {
     </div>
   </section>
 
+  <!-- 외부 링크 배너 (히어로 ↔ 항해 기록실 사이) -->
+  <section v-if="bannerItems.length > 0" class="link-banner" aria-label="외부 링크 바로가기">
+    <a
+      v-for="item in bannerItems"
+      :key="item.label"
+      :href="item.url"
+      target="_blank"
+      rel="noopener"
+      class="link-pill"
+    >
+      <span class="link-pill-ico" aria-hidden="true">
+        <img v-if="item.iconUrl" :src="item.iconUrl" alt="" />
+        <Emblem v-else />
+      </span>{{ item.label }}
+    </a>
+  </section>
+
   <div class="sec-rule" aria-hidden="true">
     <span class="ln"></span><span class="spark">✦</span><span class="ln r"></span>
   </div>
@@ -157,23 +174,6 @@ async function onCheckIn(): Promise<void> {
         </div>
       </RouterLink>
     </div>
-  </section>
-
-  <!-- 외부 링크 배너 (게시판 ↔ 출석 사이) -->
-  <section v-if="bannerItems.length > 0" class="link-banner" aria-label="외부 링크 바로가기">
-    <a
-      v-for="item in bannerItems"
-      :key="item.label"
-      :href="item.url"
-      target="_blank"
-      rel="noopener"
-      class="link-pill"
-    >
-      <span class="link-pill-ico" aria-hidden="true">
-        <img v-if="item.iconUrl" :src="item.iconUrl" alt="" />
-        <Emblem v-else />
-      </span>{{ item.label }}
-    </a>
   </section>
 
   <div class="sec-rule" aria-hidden="true">
@@ -575,7 +575,7 @@ async function onCheckIn(): Promise<void> {
   border-radius: 1px;
 }
 
-/* ── 외부 링크 배너 (게시판 ↔ 출석 사이) ── */
+/* ── 외부 링크 배너 (히어로 ↔ 항해 기록실 사이) ── */
 .link-banner {
   margin-top: clamp(34px, 5vh, 56px);
   display: flex;
