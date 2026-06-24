@@ -34,10 +34,13 @@ public class CommentService {
         this.postRepository = postRepository;
     }
 
-    /** 글의 댓글 목록. 좋아요 수·내 좋아요 여부를 일괄 계산해 채운다(viewer=null이면 liked=false). */
+    /** 글의 댓글 목록. 좋아요 수·내 좋아요 여부를 일괄 계산해 채운다(viewer=null이면 liked=false).
+     *  비밀댓글은 작성자 본인·운영자에게만 노출한다. */
     public List<CommentResponse> listForPost(Long postId, Member viewer) {
         Post post = getActivePost(postId);
-        List<Comment> comments = commentRepository.findVisibleForPost(post.getId());
+        List<Comment> comments = commentRepository.findVisibleForPost(post.getId()).stream()
+                .filter(c -> canView(c, viewer))
+                .toList();
         List<Long> ids = comments.stream().map(Comment::getId).toList();
 
         Map<Long, Long> counts = ids.isEmpty()
@@ -60,7 +63,19 @@ public class CommentService {
         Post post = getActivePost(postId);
         Long parentId = resolveParentId(post.getId(), request.parentId());
         Comment comment = Comment.create(post, author, parentId, request.content().trim());
+        comment.applySecret(request.secret());
         return commentRepository.save(comment).getId();
+    }
+
+    /** 비밀댓글 열람 권한: 비밀댓글이 아니면 누구나, 비밀댓글이면 작성자 본인 또는 운영자(ADMIN)만. */
+    private boolean canView(Comment comment, Member viewer) {
+        if (!comment.isSecret()) {
+            return true;
+        }
+        if (viewer == null) {
+            return false;
+        }
+        return viewer.getRole() == Role.ADMIN || comment.getAuthor().getId().equals(viewer.getId());
     }
 
     /** 댓글 삭제 — 하드 삭제(행 제거). 대댓글까지 함께 삭제하고, 좋아요는 FK ON DELETE CASCADE로 정리된다. */

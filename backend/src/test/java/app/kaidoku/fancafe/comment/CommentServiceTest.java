@@ -94,7 +94,7 @@ class CommentServiceTest {
         when(postRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> commentService.create(1L, member(5L, Role.MEMBER),
-                new app.kaidoku.fancafe.comment.dto.CommentCreateRequest("내용", null)))
+                new app.kaidoku.fancafe.comment.dto.CommentCreateRequest("내용", null, false)))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("글을 찾을 수 없습니다");
     }

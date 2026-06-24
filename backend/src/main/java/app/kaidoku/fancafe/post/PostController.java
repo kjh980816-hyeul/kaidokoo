@@ -34,16 +34,18 @@ public class PostController {
         this.postService = postService;
     }
 
-    /** 게시판별 글 목록. */
+    /** 게시판별 글 목록(공개, 로그인 시 본인 비밀글 포함). */
     @GetMapping("/boards/{boardCode}/posts")
-    public List<PostSummaryResponse> listByBoard(@PathVariable String boardCode) {
-        return postService.listByBoard(boardCode);
+    public List<PostSummaryResponse> listByBoard(@PathVariable String boardCode,
+                                                 @CurrentMember(required = false) Member viewer) {
+        return postService.listByBoard(boardCode, viewer);
     }
 
-    /** 글 상세. */
+    /** 글 상세(공개, 비밀글은 작성자·운영자만). */
     @GetMapping("/posts/{id}")
-    public PostDetailResponse detail(@PathVariable Long id) {
-        return postService.getDetail(id);
+    public PostDetailResponse detail(@PathVariable Long id,
+                                     @CurrentMember(required = false) Member viewer) {
+        return postService.getDetail(id, viewer);
     }
 
     /** 글 작성(로그인 회원). 작성자는 서버 신원으로 결정한다. */

@@ -47,7 +47,7 @@ class PostServiceTest {
         ReflectionTestUtils.setField(post, "id", 1L);
         when(postRepository.findDetailById(1L)).thenReturn(Optional.of(post));
 
-        PostDetailResponse result = postService.getDetail(1L);
+        PostDetailResponse result = postService.getDetail(1L, null);
 
         // 응답에는 증가된 값, 실제 증가는 DB 원자 UPDATE로 위임.
         assertThat(result.viewCount()).isEqualTo(1);
@@ -59,7 +59,7 @@ class PostServiceTest {
     void getDetail_throwsWhenMissing() {
         when(postRepository.findDetailById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> postService.getDetail(99L))
+        assertThatThrownBy(() -> postService.getDetail(99L, null))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("찾을 수 없습니다");
     }
@@ -70,7 +70,7 @@ class PostServiceTest {
         ReflectionTestUtils.setField(deleted, "status", PostStatus.DELETED);
         when(postRepository.findDetailById(2L)).thenReturn(Optional.of(deleted));
 
-        assertThatThrownBy(() -> postService.getDetail(2L))
+        assertThatThrownBy(() -> postService.getDetail(2L, null))
                 .isInstanceOf(ApiException.class);
         verify(postRepository, never()).incrementViewCount(any());
     }
@@ -89,7 +89,7 @@ class PostServiceTest {
             return p;
         });
 
-        Long id = postService.create(new PostCreateRequest("free", "제목", "본문", null, false, null), author);
+        Long id = postService.create(new PostCreateRequest("free", "제목", "본문", null, false, false, null), author);
 
         assertThat(id).isEqualTo(42L);
     }

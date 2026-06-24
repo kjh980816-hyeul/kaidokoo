@@ -7,8 +7,7 @@ import TextStyle from '@tiptap/extension-text-style'
 import Color from '@tiptap/extension-color'
 import TextAlign from '@tiptap/extension-text-align'
 import Link from '@tiptap/extension-link'
-import Youtube from '@tiptap/extension-youtube'
-import { Extension } from '@tiptap/core'
+import { Extension, Node, mergeAttributes } from '@tiptap/core'
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
@@ -101,6 +100,34 @@ const FontFamily = Extension.create({
   },
 })
 
+// 영상 임베드 노드: 일반 <iframe>을 그대로 노드로 다룬다.
+// (TipTap 기본 Youtube 확장은 <div data-youtube-video> 표식이 있어야만 재인식하는데,
+//  서버 정화기가 그 data 속성을 떼어내 수정 화면에서 영상이 사라지는 버그가 있었다.
+//  표식 없이 iframe만으로 왕복되도록 parseHTML을 'iframe'으로 잡는다. 유튜브·비메오 공용.)
+const Iframe = Node.create({
+  name: 'iframe',
+  group: 'block',
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      src: { default: null },
+      width: { default: '640' },
+      height: { default: '360' },
+      frameborder: { default: '0' },
+      allow: { default: 'autoplay; fullscreen; picture-in-picture; encrypted-media' },
+      allowfullscreen: { default: 'true' },
+    }
+  },
+  parseHTML() {
+    return [{ tag: 'iframe' }]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['iframe', mergeAttributes(HTMLAttributes)]
+  },
+})
+
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
@@ -110,9 +137,9 @@ const editor = useEditor({
     Color,
     FontSize,
     FontFamily,
+    Iframe,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer nofollow' } }),
-    Youtube.configure({ controls: true, nocookie: true, modestBranding: true }),
   ],
   onUpdate: ({ editor }) => {
     emit('update:modelValue', editor.getHTML())
@@ -192,26 +219,29 @@ function setLink(): void {
 }
 
 const VIMEO_ID = /vimeo\.com\/(?:video\/)?(\d+)/i
+// 유튜브 영상 ID 추출: watch?v=, youtu.be/, /embed/, /shorts/ 모두 지원.
+const YOUTUBE_ID = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i
+
+// 입력 URL을 임베드 src로 변환. 지원하지 않는 주소면 null.
+function toEmbedSrc(url: string): string | null {
+  const yt = url.match(YOUTUBE_ID)
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`
+  const vimeo = url.match(VIMEO_ID)
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`
+  return null
+}
 
 function addVideo(): void {
   if (!editor.value) return
   const url = window.prompt('유튜브 또는 비메오 영상 URL을 입력하세요')
   if (url === null || url.trim() === '') return
-  const trimmed = url.trim()
-  const vimeo = trimmed.match(VIMEO_ID)
-  if (vimeo) {
-    // Youtube 확장은 유튜브만 처리 → 비메오는 iframe을 직접 삽입한다.
-    const src = `https://player.vimeo.com/video/${vimeo[1]}`
-    editor.value
-      .chain()
-      .focus()
-      .insertContent(
-        `<iframe src="${src}" width="640" height="360" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`,
-      )
-      .run()
+  const src = toEmbedSrc(url.trim())
+  if (!src) {
+    window.alert('유튜브 또는 비메오 영상 주소만 넣을 수 있어요.')
     return
   }
-  editor.value.commands.setYoutubeVideo({ src: trimmed })
+  // 일반 iframe 노드로 삽입 → 저장·수정 왕복에서 표식 의존 없이 보존된다.
+  editor.value.chain().focus().insertContent({ type: 'iframe', attrs: { src } }).run()
 }
 
 function isActive(name: string, attrs?: Record<string, unknown>): boolean {

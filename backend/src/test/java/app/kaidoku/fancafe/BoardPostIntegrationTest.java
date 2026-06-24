@@ -44,13 +44,13 @@ class BoardPostIntegrationTest {
         Member author = memberRepository.save(Member.create(Provider.GOOGLE, "itest-1", "통합선원"));
 
         Long postId = postService.create(
-                new PostCreateRequest(board.getCode(), "통합 제목", "통합 본문", null, false, null), author);
+                new PostCreateRequest(board.getCode(), "통합 제목", "통합 본문", null, false, false, null), author);
 
-        List<PostSummaryResponse> list = postService.listByBoard(board.getCode());
+        List<PostSummaryResponse> list = postService.listByBoard(board.getCode(), null);
         assertThat(list).extracting(PostSummaryResponse::title).contains("통합 제목");
         assertThat(list).extracting(PostSummaryResponse::authorNickname).contains("통합선원");
 
-        PostDetailResponse detail = postService.getDetail(postId);
+        PostDetailResponse detail = postService.getDetail(postId, null);
         assertThat(detail.content()).isEqualTo("통합 본문");
         assertThat(detail.boardCode()).isEqualTo("itest");
         assertThat(detail.viewCount()).isEqualTo(1);

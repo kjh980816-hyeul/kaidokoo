@@ -62,6 +62,10 @@ public class Post {
     @Column(name = "is_pinned", nullable = false)
     private boolean pinned;
 
+    /** 비밀글: true면 작성자 본인·운영자(ADMIN)만 열람 가능(서버 강제). */
+    @Column(name = "is_secret", nullable = false)
+    private boolean secret;
+
     /** 말머리(선택). 게시판의 categories 중 하나이거나 null(서버 검증은 PostService). */
     @Column(length = 50)
     private String category;
@@ -88,6 +92,7 @@ public class Post {
         p.likeCount = 0;
         p.status = PostStatus.PUBLISHED;
         p.pinned = false;
+        p.secret = false;
         LocalDateTime now = LocalDateTime.now();
         p.createdAt = now;
         p.updatedAt = now;
@@ -114,6 +119,11 @@ public class Post {
     /** 고정 여부 설정(관리자 전용 — 권한 검증은 PostService에서). */
     public void setPinned(boolean pinned) {
         this.pinned = pinned;
+    }
+
+    /** 비밀글 여부 설정(작성자가 자유 지정). */
+    public void applySecret(boolean secret) {
+        this.secret = secret;
     }
 
     /** 첨부 이미지 전체 제거(수정 시 교체용 — orphanRemoval로 DB 행도 삭제). */

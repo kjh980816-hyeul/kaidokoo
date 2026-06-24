@@ -21,6 +21,7 @@ export interface PostSummary {
   viewCount: number
   likeCount: number
   pinned: boolean
+  secret: boolean
   category: string | null
   thumbnailUrl: string | null
   createdAt: string
@@ -37,6 +38,7 @@ export interface PostDetail {
   viewCount: number
   likeCount: number
   pinned: boolean
+  secret: boolean
   category: string | null
   imageUrls: string[]
   createdAt: string
@@ -51,6 +53,7 @@ export interface PostCreateRequest {
   imageUrls: string[]
   category: string | null
   pinned: boolean
+  secret: boolean
 }
 
 // 글 수정 본문. category·pinned 포함(말머리·고정공지 반영).
@@ -60,6 +63,7 @@ export interface PostUpdateRequest {
   imageUrls: string[]
   category: string | null
   pinned: boolean
+  secret: boolean
 }
 
 // 외부링크 배너 항목(관리자가 이름+링크+아이콘 자유 추가). iconUrl이 null이면 기본 엠블럼.
@@ -87,12 +91,14 @@ export interface Comment {
   authorGradeColor: string | null
   likeCount: number
   liked: boolean
+  secret: boolean
   createdAt: string
 }
 
 export interface CommentCreateRequest {
   content: string
   parentId: number | null
+  secret: boolean
 }
 
 export interface LikeStatus {

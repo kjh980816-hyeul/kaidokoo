@@ -39,6 +39,7 @@ const boardCode = ref<string>(props.code ?? '')
 const categories = ref<string[]>([]) // 게시판이 정의한 말머리 목록
 const category = ref<string>('') // 선택된 말머리('' = 말머리 없음)
 const pinned = ref(false) // 공지 고정(ADMIN 전용)
+const secret = ref(false) // 비밀글(작성자 본인·운영자만 열람)
 const submitting = ref(false)
 const uploading = ref(false)
 const loading = ref(false)
@@ -73,6 +74,7 @@ onMounted(async () => {
     boardCode.value = post.boardCode
     category.value = post.category ?? ''
     pinned.value = post.pinned
+    secret.value = post.secret
     await loadBoardCategories(post.boardCode)
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : '글을 불러오지 못했습니다.'
@@ -132,6 +134,7 @@ async function submit(): Promise<void> {
         imageUrls: images.value,
         category: cat,
         pinned: pinned.value,
+        secret: secret.value,
       })
       await router.push({ name: 'post-detail', params: { id: postId.value } })
     } else {
@@ -142,6 +145,7 @@ async function submit(): Promise<void> {
         imageUrls: images.value,
         category: cat,
         pinned: pinned.value,
+        secret: secret.value,
       })
       await router.push({ name: 'post-detail', params: { id } })
     }
@@ -172,6 +176,11 @@ async function submit(): Promise<void> {
       <label v-if="isAdmin" class="check-row">
         <input v-model="pinned" type="checkbox" />
         <span>공지로 고정</span>
+      </label>
+
+      <label class="check-row">
+        <input v-model="secret" type="checkbox" />
+        <span>🔒 비밀글 <span class="hint">· 작성자와 운영자만 볼 수 있어요</span></span>
       </label>
 
       <label>

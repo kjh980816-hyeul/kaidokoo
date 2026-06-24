@@ -99,7 +99,7 @@ watch(() => props.code, load, { immediate: true })
         <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" :alt="post.title" />
         <span v-else class="gal-blank" aria-hidden="true">✦</span>
         <span class="gal-cap">
-          <span v-if="post.pinned" class="pin">✦</span>{{ post.title }}
+          <span v-if="post.pinned" class="pin">✦</span><span v-if="post.secret" class="lock" aria-hidden="true">🔒</span>{{ post.title }}
           <span v-if="isNew(post.createdAt)" class="new-badge">NEW</span>
         </span>
       </RouterLink>
@@ -120,7 +120,7 @@ watch(() => props.code, load, { immediate: true })
           <span v-if="boardType === 'VIDEO'" class="play" aria-hidden="true">▶</span>
         </span>
         <span class="card-body">
-          <span class="card-title"><span v-if="post.pinned" class="pin">✦</span><span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
+          <span class="card-title"><span v-if="post.pinned" class="pin">✦</span><span v-if="post.secret" class="lock" aria-hidden="true">🔒</span><span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
           <span class="card-meta muted">
             {{ post.authorNickname }} · {{ formatDateTime(post.createdAt) }} · ♥ {{ post.likeCount }}
           </span>
@@ -134,7 +134,7 @@ watch(() => props.code, load, { immediate: true })
     <li v-for="post in displayPosts" :key="post.id" class="letter">
       <RouterLink :to="{ name: 'post-detail', params: { id: post.id } }" class="letter-link">
         <span class="letter-pin" aria-hidden="true">✦</span>
-        <span class="letter-title"><span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
+        <span class="letter-title"><span v-if="post.secret" class="lock" aria-hidden="true">🔒</span><span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
         <span class="letter-meta muted">{{ post.authorNickname }}</span>
         <span class="letter-date muted">{{ formatDateTime(post.createdAt) }}</span>
       </RouterLink>
@@ -146,7 +146,7 @@ watch(() => props.code, load, { immediate: true })
     <li v-for="(post, i) in displayPosts" :key="post.id" class="rank-row">
       <span class="rank-no" :class="{ top: i < 3 }">{{ i + 1 }}</span>
       <RouterLink :to="{ name: 'post-detail', params: { id: post.id } }" class="rank-main">
-        <span class="rank-title"><span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
+        <span class="rank-title"><span v-if="post.secret" class="lock" aria-hidden="true">🔒</span><span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>{{ post.title }}<span v-if="isNew(post.createdAt)" class="new-badge">NEW</span></span>
         <span class="rank-bar">
           <span class="rank-bar-fill" :style="{ width: (post.likeCount / maxLikes) * 100 + '%' }"></span>
         </span>
@@ -161,6 +161,7 @@ watch(() => props.code, load, { immediate: true })
       <RouterLink :to="{ name: 'post-detail', params: { id: post.id } }" class="post-link">
         <span v-if="post.pinned" class="notice-badge">공지</span>
         <img v-if="post.thumbnailUrl" :src="post.thumbnailUrl" alt="" class="row-thumb" />
+        <span v-if="post.secret" class="lock" aria-hidden="true">🔒</span>
         <span v-if="post.category" class="cat-prefix">[{{ post.category }}]</span>
         <span class="post-title">{{ post.title }}</span>
         <span v-if="isNew(post.createdAt)" class="new-badge">NEW</span>
@@ -187,6 +188,11 @@ watch(() => props.code, load, { immediate: true })
 .pin {
   color: var(--gold);
   margin-right: 0.35rem;
+}
+/* 비밀글 자물쇠(작성자·운영자에게만 목록에 노출됨) */
+.lock {
+  font-size: 0.82em;
+  margin-right: 0.25rem;
 }
 /* 말머리 필터 칩 */
 .cat-filter {

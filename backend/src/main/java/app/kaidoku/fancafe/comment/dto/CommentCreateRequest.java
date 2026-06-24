@@ -10,6 +10,9 @@ public record CommentCreateRequest(
         String content,
 
         /** 대댓글이면 상위 댓글 id, 최상위면 null. */
-        Long parentId
+        Long parentId,
+
+        /** 비밀댓글 여부. true면 작성자 본인·운영자만 열람 가능. */
+        boolean secret
 ) {
 }

@@ -42,10 +42,12 @@ public class PostService {
         this.htmlSanitizer = htmlSanitizer;
     }
 
-    /** 특정 게시판의 공개 글 목록(대표 썸네일 포함). */
-    public List<PostSummaryResponse> listByBoard(String boardCode) {
+    /** 특정 게시판의 공개 글 목록(대표 썸네일 포함). 비밀글은 작성자 본인·운영자에게만 노출. */
+    public List<PostSummaryResponse> listByBoard(String boardCode, Member viewer) {
         Board board = boardService.getVisibleByCode(boardCode);
-        List<Post> posts = postRepository.findForBoard(board.getId(), PostStatus.PUBLISHED);
+        List<Post> posts = postRepository.findForBoard(board.getId(), PostStatus.PUBLISHED).stream()
+                .filter(p -> canView(p, viewer))
+                .toList();
         if (posts.isEmpty()) {
             return List.of();
         }
@@ -53,6 +55,17 @@ public class PostService {
         return posts.stream()
                 .map(p -> PostSummaryResponse.from(p, thumbs.get(p.getId())))
                 .toList();
+    }
+
+    /** 비밀글 열람 권한: 비밀글이 아니면 누구나, 비밀글이면 작성자 본인 또는 운영자(ADMIN)만. */
+    private boolean canView(Post post, Member viewer) {
+        if (!post.isSecret()) {
+            return true;
+        }
+        if (viewer == null) {
+            return false;
+        }
+        return viewer.getRole() == Role.ADMIN || post.getAuthor().getId().equals(viewer.getId());
     }
 
     /** 글별 대표 썸네일(가장 앞 이미지)을 한 번의 쿼리로 모은다. */
@@ -71,13 +84,16 @@ public class PostService {
         return fileStorage.storePostImage(file);
     }
 
-    /** 글 상세 조회 + 조회수 증가. 삭제글은 404. */
+    /** 글 상세 조회 + 조회수 증가. 삭제글은 404. 비밀글은 작성자 본인·운영자만 열람 가능. */
     @Transactional
-    public PostDetailResponse getDetail(Long postId) {
+    public PostDetailResponse getDetail(Long postId, Member viewer) {
         Post post = postRepository.findDetailById(postId)
                 .orElseThrow(() -> ApiException.notFound("글을 찾을 수 없습니다: " + postId));
         if (post.isDeleted()) {
             throw ApiException.notFound("글을 찾을 수 없습니다: " + postId);
+        }
+        if (!canView(post, viewer)) {
+            throw ApiException.forbidden("비밀글입니다. 작성자와 운영자만 볼 수 있습니다.");
         }
         // 조회수는 DB에서 원자적으로 증가(동시 조회 시 유실·다른 컬럼 덮어쓰기 방지).
         postRepository.incrementViewCount(postId);
@@ -96,6 +112,7 @@ public class PostService {
         if (request.pinned() && author.getRole() == Role.ADMIN) {
             post.setPinned(true);
         }
+        post.applySecret(request.secret());
         attachImages(post, request.imageUrls());
         return postRepository.save(post).getId();
     }
@@ -149,6 +166,7 @@ public class PostService {
         if (member.getRole() == Role.ADMIN) {
             post.setPinned(request.pinned());
         }
+        post.applySecret(request.secret());
         post.clearImages();
         attachImages(post, request.imageUrls());
     }

@@ -48,8 +48,10 @@ const likeError = ref<string | null>(null)
 
 const comments = ref<Comment[]>([])
 const newComment = ref('')
+const newSecret = ref(false) // 비밀댓글(작성자·운영자만)
 const replyTo = ref<number | null>(null)
 const replyText = ref('')
+const replySecret = ref(false)
 const commentBusy = ref(false)
 const commentError = ref<string | null>(null)
 
@@ -102,15 +104,18 @@ async function onToggleLike(): Promise<void> {
 async function submitComment(parentId: number | null): Promise<void> {
   const text = parentId === null ? newComment.value : replyText.value
   if (!text.trim()) return
+  const secret = parentId === null ? newSecret.value : replySecret.value
   commentBusy.value = true
   commentError.value = null
   try {
-    await createComment(postId.value, { content: text.trim(), parentId })
+    await createComment(postId.value, { content: text.trim(), parentId, secret })
     await loadComments()
     if (parentId === null) {
       newComment.value = ''
+      newSecret.value = false
     } else {
       replyText.value = ''
+      replySecret.value = false
       replyTo.value = null
     }
   } catch (e: unknown) {
@@ -133,6 +138,7 @@ async function onDeleteComment(commentId: number): Promise<void> {
 function toggleReply(commentId: number): void {
   replyTo.value = replyTo.value === commentId ? null : commentId
   replyText.value = ''
+  replySecret.value = false
 }
 
 // 댓글 좋아요 토글. 응답으로 받은 값으로 해당 댓글 객체를 직접 갱신(반응형).
@@ -157,7 +163,10 @@ async function onToggleCommentLike(c: Comment): Promise<void> {
         <RouterLink :to="{ name: 'board', params: { code: post.boardCode } }" class="eyebrow back">
           ← {{ post.boardNameKr }}
         </RouterLink>
-        <h1 class="post-title">{{ post.title }}</h1>
+        <h1 class="post-title">
+          <span v-if="post.secret" class="secret-tag" title="비밀글">🔒 비밀글</span>
+          {{ post.title }}
+        </h1>
         <p class="post-meta muted">
           {{ post.authorNickname }} · {{ formatDateTime(post.createdAt) }} · 조회 {{ post.viewCount }}
         </p>
@@ -205,6 +214,7 @@ async function onToggleCommentLike(c: Comment): Promise<void> {
               class="grade-badge"
               :style="{ '--badge': c.authorGradeColor || 'var(--gold)' }"
             >{{ c.authorGradeName }}</span>
+            <span v-if="c.secret" class="secret-mini" title="비밀댓글">🔒 비밀</span>
             <span class="comment-date muted">{{ formatDateTime(c.createdAt) }}</span>
           </div>
           <p class="comment-body">{{ c.content }}</p>
@@ -218,6 +228,9 @@ async function onToggleCommentLike(c: Comment): Promise<void> {
 
           <form v-if="replyTo === c.id" class="reply-form" @submit.prevent="submitComment(c.id)">
             <input v-model="replyText" type="text" maxlength="1000" placeholder="답글을 남겨주세요" />
+            <label class="secret-check" title="작성자와 운영자만 볼 수 있어요">
+              <input v-model="replySecret" type="checkbox" /> 🔒 비밀
+            </label>
             <button type="submit" class="btn small" :disabled="commentBusy">등록</button>
           </form>
 
@@ -231,6 +244,7 @@ async function onToggleCommentLike(c: Comment): Promise<void> {
                   class="grade-badge"
                   :style="{ '--badge': r.authorGradeColor || 'var(--gold)' }"
                 >{{ r.authorGradeName }}</span>
+                <span v-if="r.secret" class="secret-mini" title="비밀댓글">🔒 비밀</span>
                 <span class="comment-date muted">{{ formatDateTime(r.createdAt) }}</span>
               </div>
               <p class="comment-body">{{ r.content }}</p>
@@ -249,6 +263,9 @@ async function onToggleCommentLike(c: Comment): Promise<void> {
       <form class="comment-form" @submit.prevent="submitComment(null)">
         <textarea v-model="newComment" rows="3" maxlength="1000" placeholder="안개 너머로 한마디 남기기" />
         <div class="comment-form-actions">
+          <label class="secret-check" title="작성자와 운영자만 볼 수 있어요">
+            <input v-model="newSecret" type="checkbox" /> 🔒 비밀댓글
+          </label>
           <button type="submit" class="btn" :disabled="commentBusy">댓글 등록</button>
         </div>
       </form>
@@ -491,8 +508,44 @@ async function onToggleCommentLike(c: Comment): Promise<void> {
 }
 .comment-form-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 0.9rem;
   margin-top: 0.6rem;
+}
+/* 비밀글/비밀댓글 표식 */
+.secret-tag {
+  display: inline-block;
+  font-style: normal;
+  font-size: 0.6em;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+  color: var(--gold-bright);
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  padding: 0.12em 0.6em;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+.secret-mini {
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--gold-bright);
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+}
+.secret-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--gold-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.secret-check input {
+  width: auto;
 }
 .btn.small {
   padding: 0.4rem 0.9rem;

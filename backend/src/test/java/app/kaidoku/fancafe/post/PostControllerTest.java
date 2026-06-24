@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -41,9 +42,9 @@ class PostControllerTest {
 
     @Test
     void detail_returnsJson() throws Exception {
-        when(postService.getDetail(eq(1L))).thenReturn(new PostDetailResponse(
+        when(postService.getDetail(eq(1L), any())).thenReturn(new PostDetailResponse(
                 1L, "free", "정박지", "제목", "본문", null, 7L, "선원",
-                3, 0, false, java.util.List.of(), LocalDateTime.now(), LocalDateTime.now()));
+                3, 0, false, false, java.util.List.of(), LocalDateTime.now(), LocalDateTime.now()));
 
         mockMvc.perform(get("/api/posts/1"))
                 .andExpect(status().isOk())
@@ -54,7 +55,7 @@ class PostControllerTest {
 
     @Test
     void detail_returns404WhenMissing() throws Exception {
-        when(postService.getDetail(eq(99L))).thenThrow(ApiException.notFound("글을 찾을 수 없습니다: 99"));
+        when(postService.getDetail(eq(99L), any())).thenThrow(ApiException.notFound("글을 찾을 수 없습니다: 99"));
 
         mockMvc.perform(get("/api/posts/99"))
                 .andExpect(status().isNotFound())

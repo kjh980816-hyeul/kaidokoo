@@ -13,6 +13,7 @@ public record PostSummaryResponse(
         int viewCount,
         int likeCount,
         boolean pinned,
+        boolean secret,
         String thumbnailUrl,
         LocalDateTime createdAt
 ) {
@@ -23,6 +24,6 @@ public record PostSummaryResponse(
     public static PostSummaryResponse from(Post p, String thumbnailUrl) {
         return new PostSummaryResponse(
                 p.getId(), p.getTitle(), p.getCategory(), p.getAuthor().getNickname(),
-                p.getViewCount(), p.getLikeCount(), p.isPinned(), thumbnailUrl, p.getCreatedAt());
+                p.getViewCount(), p.getLikeCount(), p.isPinned(), p.isSecret(), thumbnailUrl, p.getCreatedAt());
     }
 }

@@ -57,7 +57,7 @@ class CommunityIntegrationTest {
         Board board = boardRepository.save(
                 Board.create("c-" + author.getProviderUserId(), "테스트", null, null, 1,
                         BoardType.GENERAL, Role.MEMBER, null));
-        return postService.create(new PostCreateRequest(board.getCode(), "제목", "본문", null, false, null), author);
+        return postService.create(new PostCreateRequest(board.getCode(), "제목", "본문", null, false, false, null), author);
     }
 
     @Test
@@ -65,7 +65,7 @@ class CommunityIntegrationTest {
         Member author = newMember("c1");
         Long postId = newPost(author);
 
-        commentService.create(postId, author, new CommentCreateRequest("첫 댓글", null));
+        commentService.create(postId, author, new CommentCreateRequest("첫 댓글", null, false));
         List<CommentResponse> comments = commentService.listForPost(postId, null);
 
         assertThat(comments).extracting(CommentResponse::content).contains("첫 댓글");

@@ -15,6 +15,7 @@ public record CommentResponse(
         String authorGradeColor,
         long likeCount,
         boolean liked,
+        boolean secret,
         LocalDateTime createdAt
 ) {
     public static CommentResponse from(Comment c, long likeCount, boolean liked) {
@@ -28,6 +29,7 @@ public record CommentResponse(
                 grade != null ? grade.getBadgeColor() : null,
                 likeCount,
                 liked,
+                c.isSecret(),
                 c.getCreatedAt());
     }
 }

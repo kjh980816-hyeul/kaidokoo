@@ -111,31 +111,35 @@ async function onCheckIn(): Promise<void> {
     <p class="hero-tagline">
       밤하늘을 나침반 삼는 선장의 항해 일지.<br />별빛 아래 모인 유랑단의 기록을 남기는 곳.
     </p>
-    <div class="hero-rule" aria-hidden="true">
-      <span class="ln"></span>
-      <span class="spark">✦</span>
-      <span class="ln r"></span>
+  </section>
+
+  <!-- 외부 링크 배너: 위·아래 ✦ 경계 사이 정중앙에 박는다(배너 있을 때만 두 경계 표시) -->
+  <template v-if="bannerItems.length > 0">
+    <div class="sec-rule" aria-hidden="true">
+      <span class="ln"></span><span class="spark">✦</span><span class="ln r"></span>
     </div>
-  </section>
+    <section class="link-banner" aria-label="외부 링크 바로가기">
+      <a
+        v-for="item in bannerItems"
+        :key="item.label"
+        :href="item.url"
+        target="_blank"
+        rel="noopener"
+        class="link-pill"
+      >
+        <span class="link-pill-ico" aria-hidden="true">
+          <img v-if="item.iconUrl" :src="item.iconUrl" alt="" />
+          <Emblem v-else />
+        </span>{{ item.label }}
+      </a>
+    </section>
+    <div class="sec-rule" aria-hidden="true">
+      <span class="ln"></span><span class="spark">✦</span><span class="ln r"></span>
+    </div>
+  </template>
 
-  <!-- 외부 링크 배너 (히어로 ↔ 항해 기록실 사이) -->
-  <section v-if="bannerItems.length > 0" class="link-banner" aria-label="외부 링크 바로가기">
-    <a
-      v-for="item in bannerItems"
-      :key="item.label"
-      :href="item.url"
-      target="_blank"
-      rel="noopener"
-      class="link-pill"
-    >
-      <span class="link-pill-ico" aria-hidden="true">
-        <img v-if="item.iconUrl" :src="item.iconUrl" alt="" />
-        <Emblem v-else />
-      </span>{{ item.label }}
-    </a>
-  </section>
-
-  <div class="sec-rule" aria-hidden="true">
+  <!-- 배너가 없으면 히어로↔게시판 사이 ✦ 한 줄만 -->
+  <div v-else class="sec-rule" aria-hidden="true">
     <span class="ln"></span><span class="spark">✦</span><span class="ln r"></span>
   </div>
 
@@ -374,26 +378,6 @@ async function onCheckIn(): Promise<void> {
   letter-spacing: 0.12em;
   color: var(--ink-body);
 }
-.hero-rule {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin: clamp(26px, 3.6vh, 36px) auto 0;
-  color: var(--gold-1);
-}
-.hero-rule .ln {
-  width: clamp(40px, 8vw, 90px);
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold-1));
-}
-.hero-rule .ln.r {
-  background: linear-gradient(90deg, var(--gold-1), transparent);
-}
-.hero-rule .spark {
-  font-size: 14px;
-  color: var(--gold-2);
-}
 /* 섹션 구분선 — 히어로 하단 장식과 동일 톤. 각 섹터 사이에 배치. */
 .sec-rule {
   display: flex;
@@ -575,9 +559,10 @@ async function onCheckIn(): Promise<void> {
   border-radius: 1px;
 }
 
-/* ── 외부 링크 배너 (히어로 ↔ 항해 기록실 사이) ── */
+/* ── 외부 링크 배너 (위·아래 ✦ 경계 사이 정중앙) ── */
+/* 마진 0 → 위/아래 sec-rule의 대칭 마진이 곧 배너의 상하 간격이 되어 두 ✦ 사이 정중앙에 박힌다. */
 .link-banner {
-  margin-top: clamp(34px, 5vh, 56px);
+  margin: 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;

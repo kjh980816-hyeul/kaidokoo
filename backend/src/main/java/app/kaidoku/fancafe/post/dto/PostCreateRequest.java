@@ -24,6 +24,9 @@ public record PostCreateRequest(
         /** 고정공지 여부. ADMIN만 true가 반영되고, 일반 회원은 강제로 false 처리(서버 검증). */
         boolean pinned,
 
+        /** 비밀글 여부. true면 작성자 본인·운영자만 열람 가능(누구나 본인 글에 설정 가능). */
+        boolean secret,
+
         /** 첨부 이미지 URL 목록(업로드 후 받은 /uploads/posts/... 경로). 선택. */
         List<String> imageUrls
 ) {

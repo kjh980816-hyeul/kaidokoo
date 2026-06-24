@@ -19,6 +19,7 @@ public record PostDetailResponse(
         int viewCount,
         int likeCount,
         boolean pinned,
+        boolean secret,
         List<String> imageUrls,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -34,7 +35,7 @@ public record PostDetailResponse(
                 p.getId(), p.getBoard().getCode(), p.getBoard().getNameKr(),
                 p.getTitle(), p.getContent(), p.getCategory(),
                 p.getAuthor().getId(), p.getAuthor().getNickname(),
-                viewCount, p.getLikeCount(), p.isPinned(), imageUrls,
+                viewCount, p.getLikeCount(), p.isPinned(), p.isSecret(), imageUrls,
                 p.getCreatedAt(), p.getUpdatedAt());
     }
 }

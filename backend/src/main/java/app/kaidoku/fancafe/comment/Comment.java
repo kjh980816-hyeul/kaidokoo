@@ -51,6 +51,10 @@ public class Comment {
     @Column(nullable = false, length = 20)
     private CommentStatus status;
 
+    /** 비밀댓글: true면 작성자 본인·운영자(ADMIN)만 열람 가능(서버 강제). */
+    @Column(name = "is_secret", nullable = false)
+    private boolean secret;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -61,8 +65,14 @@ public class Comment {
         c.parentId = parentId;
         c.content = content;
         c.status = CommentStatus.PUBLISHED;
+        c.secret = false;
         c.createdAt = LocalDateTime.now();
         return c;
+    }
+
+    /** 비밀댓글 여부 설정(작성자가 자유 지정). */
+    public void applySecret(boolean secret) {
+        this.secret = secret;
     }
 
     public boolean isDeleted() {
