@@ -1,0 +1,9 @@
+[mysqld]
+# 1GB RAM 서버 — MySQL 메모리 다이어트 (JVM과 공존)
+innodb_buffer_pool_size = 128M
+innodb_log_buffer_size  = 8M
+max_connections         = 30
+performance_schema      = OFF
+# utf8mb4 기본
+character-set-server     = utf8mb4
+collation-server         = utf8mb4_unicode_ci

@@ -29,12 +29,21 @@ public class FileStorageService {
     private static final Logger log = LoggerFactory.getLogger(FileStorageService.class);
 
     /** 허용 이미지 MIME → 확장자. */
-    private static final Map<String, String> ALLOWED = Map.of(
+    private static final Map<String, String> ALLOWED_IMAGE = Map.of(
             "image/jpeg", "jpg",
             "image/png", "png",
             "image/webp", "webp",
             "image/gif", "gif");
-    private static final long MAX_BYTES = 2L * 1024 * 1024; // 2MB
+    /** 허용 오디오 MIME → 확장자(글 본문 음악 첨부). */
+    private static final Map<String, String> ALLOWED_AUDIO = Map.of(
+            "audio/mpeg", "mp3",
+            "audio/mp4", "m4a",
+            "audio/x-m4a", "m4a",
+            "audio/wav", "wav",
+            "audio/x-wav", "wav",
+            "audio/ogg", "ogg");
+    private static final long MAX_IMAGE_BYTES = 2L * 1024 * 1024; // 2MB
+    private static final long MAX_AUDIO_BYTES = 20L * 1024 * 1024; // 20MB(multipart·nginx 한도와 함께 관리)
     private static final String AVATAR_PREFIX = "/uploads/avatars/";
     private static final String POST_PREFIX = "/uploads/posts/";
 
@@ -58,32 +67,42 @@ public class FileStorageService {
 
     /** 아바타 저장 후 공개 URL 경로 반환. */
     public String storeAvatar(MultipartFile file) {
-        return store(file, avatarDir, AVATAR_PREFIX);
+        return store(file, avatarDir, AVATAR_PREFIX, ALLOWED_IMAGE, MAX_IMAGE_BYTES,
+                "이미지는 2MB 이하만 올릴 수 있습니다.", "JPG·PNG·WEBP·GIF 이미지만 올릴 수 있습니다.");
     }
 
     /** 게시글 첨부 이미지 저장 후 공개 URL 경로 반환. */
     public String storePostImage(MultipartFile file) {
-        return store(file, postDir, POST_PREFIX);
+        return store(file, postDir, POST_PREFIX, ALLOWED_IMAGE, MAX_IMAGE_BYTES,
+                "이미지는 2MB 이하만 올릴 수 있습니다.", "JPG·PNG·WEBP·GIF 이미지만 올릴 수 있습니다.");
+    }
+
+    /** 게시글 첨부 오디오(음악) 저장 후 공개 URL 경로 반환. */
+    public String storePostAudio(MultipartFile file) {
+        return store(file, postDir, POST_PREFIX, ALLOWED_AUDIO, MAX_AUDIO_BYTES,
+                "음악 파일은 20MB 이하만 올릴 수 있습니다.", "MP3·M4A·WAV·OGG 음악 파일만 올릴 수 있습니다.");
     }
 
     /** 공통 저장 로직: MIME 화이트리스트 + 용량 제한 + 서버 생성 파일명(경로조작 차단). */
-    private String store(MultipartFile file, Path dir, String urlPrefix) {
+    private String store(MultipartFile file, Path dir, String urlPrefix,
+                         Map<String, String> allowed, long maxBytes,
+                         String sizeMessage, String typeMessage) {
         if (file == null || file.isEmpty()) {
-            throw ApiException.badRequest("이미지 파일을 선택해 주세요.");
+            throw ApiException.badRequest("파일을 선택해 주세요.");
         }
-        if (file.getSize() > MAX_BYTES) {
-            throw ApiException.badRequest("이미지는 2MB 이하만 올릴 수 있습니다.");
+        if (file.getSize() > maxBytes) {
+            throw ApiException.badRequest(sizeMessage);
         }
-        String ext = ALLOWED.get(file.getContentType());
+        String ext = allowed.get(file.getContentType());
         if (ext == null) {
-            throw ApiException.badRequest("JPG·PNG·WEBP·GIF 이미지만 올릴 수 있습니다.");
+            throw ApiException.badRequest(typeMessage);
         }
         String filename = UUID.randomUUID().toString().replace("-", "") + "." + ext;
         Path target = dir.resolve(filename).normalize();
         try (InputStream in = file.getInputStream()) {
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            throw new IllegalStateException("이미지 저장 실패", e);
+            throw new IllegalStateException("파일 저장 실패", e);
         }
         return urlPrefix + filename;
     }

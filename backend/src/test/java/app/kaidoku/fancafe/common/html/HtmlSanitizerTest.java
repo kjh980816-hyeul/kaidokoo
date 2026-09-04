@@ -44,6 +44,25 @@ class HtmlSanitizerTest {
     }
 
     @Test
+    void keepsUploadedAudioWithControls() {
+        String out = sanitizer.sanitize(
+                "<audio src=\"/uploads/posts/abc123.mp3\" preload=\"metadata\"></audio>");
+        assertThat(out).contains("<audio");
+        assertThat(out).contains("/uploads/posts/abc123.mp3");
+        assertThat(out).contains("controls");
+    }
+
+    @Test
+    void removesExternalOrTraversalAudioSrc() {
+        String external = sanitizer.sanitize("<audio src=\"https://evil.test/a.mp3\"></audio>");
+        assertThat(external).doesNotContain("<audio");
+        String traversal = sanitizer.sanitize("<audio src=\"/uploads/posts/../../etc/passwd\"></audio>");
+        assertThat(traversal).doesNotContain("<audio");
+        String scheme = sanitizer.sanitize("<audio src=\"javascript:alert(1)\"></audio>");
+        assertThat(scheme).doesNotContain("<audio");
+    }
+
+    @Test
     void keepsYoutubeIframe() {
         String out = sanitizer.sanitize(
                 "<iframe src=\"https://www.youtube.com/embed/abc123\" "

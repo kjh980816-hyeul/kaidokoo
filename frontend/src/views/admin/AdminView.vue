@@ -519,12 +519,13 @@ async function resetLogo(): Promise<void> {
                 <option value="FORCE_OFF">강제 OFF</option>
               </select>
             </label>
-            <label>씨미 채널 ID<input v-model="liveForm.channelId" placeholder="@kaiijoku" /></label>
+            <label>씨미 채널 ID<input v-model="liveForm.channelId" placeholder="숫자 ID (예: 1048628)" /></label>
           </div>
           <label>배너 제목<input v-model="liveForm.title" placeholder="오늘 별바다 항해 방송" /></label>
           <label>방송 링크<input v-model="liveForm.streamUrl" placeholder="https://ci.me/..." /></label>
           <p class="muted hint">
             ※ 자동 모드는 채널 ID가 있어야 동작하며 30~60초 간격으로 방송 여부를 감지합니다.
+            채널 ID는 @핸들이 아니라 <strong>숫자</strong>입니다(씨미 API가 숫자 ID만 받습니다).
             제목은 자동 모드에서 방송 제목으로 갱신됩니다.
           </p>
           <div class="form-actions"><button type="submit" class="btn">저장</button></div>

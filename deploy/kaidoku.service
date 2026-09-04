@@ -1,0 +1,17 @@
+[Unit]
+Description=Kaidoku Fancafe (Spring Boot)
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=root
+EnvironmentFile=/etc/kaidoku/kaidoku.env
+# 1GB RAM 서버 — JVM 힙 상한 제한 (MySQL과 메모리 공존)
+ExecStart=/usr/bin/java -Xms128m -Xmx448m -XX:+UseSerialGC -jar /opt/kaidoku/app.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

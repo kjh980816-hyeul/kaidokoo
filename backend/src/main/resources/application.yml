@@ -20,9 +20,10 @@ spring:
     import: optional:file:./secrets/local.yml
   servlet:
     multipart:
-      # 아바타 업로드 한도(서비스단 2MB 검증 + 여유). 초과 시 표준 에러로 매핑.
-      max-file-size: 5MB
-      max-request-size: 5MB
+      # 업로드 한도(서비스단 검증: 이미지 2MB·오디오 20MB + 여유). 초과 시 표준 에러로 매핑.
+      # nginx client_max_body_size도 이 값 이상이어야 한다(운영 25m).
+      max-file-size: 25MB
+      max-request-size: 25MB
 
 server:
   port: 8080

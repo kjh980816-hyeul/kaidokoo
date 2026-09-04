@@ -335,6 +335,11 @@ async function onToggleCommentLike(c: Comment): Promise<void> {
 .post-body :deep(a:hover) {
   color: var(--gold-2);
 }
+.post-body :deep(audio) {
+  display: block;
+  width: 100%;
+  margin: 0.8em 0;
+}
 .post-body :deep(img) {
   max-width: 100%;
   height: auto;

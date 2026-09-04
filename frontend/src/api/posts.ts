@@ -23,6 +23,13 @@ export function uploadPostImage(file: File): Promise<{ url: string }> {
   return http<{ url: string }>('/posts/images', { method: 'POST', body: form })
 }
 
+/** 게시글 첨부 오디오(음악) 업로드(multipart 필드명 file). 저장된 공개 URL을 돌려준다. */
+export function uploadPostAudio(file: File): Promise<{ url: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  return http<{ url: string }>('/posts/audio', { method: 'POST', body: form })
+}
+
 /** 글 수정(작성자 본인 또는 ADMIN). 제목·본문·이미지 교체. */
 export function updatePost(id: number, req: PostUpdateRequest): Promise<void> {
   return http<void>(`/posts/${id}`, { method: 'PATCH', body: JSON.stringify(req) })

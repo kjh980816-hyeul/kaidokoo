@@ -3,16 +3,20 @@ import DOMPurify from 'dompurify'
 // 본문에 직접 박을 iframe src는 유튜브/비메오 임베드만 허용한다(심층 방어 — 백엔드도 1차 제한).
 const ALLOWED_IFRAME_HOST = /^https:\/\/(?:www\.)?(?:youtube\.com|youtube-nocookie\.com|youtu\.be|player\.vimeo\.com)\//i
 
-// iframe[src]가 화이트리스트 호스트가 아니면 통째로 제거한다.
+// audio src는 우리 업로드 저장소 경로만 허용한다(심층 방어 — 백엔드 정화기와 동일 계약).
+const ALLOWED_AUDIO_SRC = /^\/uploads\/posts\//
+
+// iframe[src] 화이트리스트 호스트 외 제거 + audio[src] 저장소 경로 외 제거.
 let hookRegistered = false
 function registerIframeHook(): void {
   if (hookRegistered) return
   hookRegistered = true
   DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-    if (data.tagName !== 'iframe') return
+    if (data.tagName !== 'iframe' && data.tagName !== 'audio') return
     const el = node as Element
     const src = el.getAttribute('src') ?? ''
-    if (!ALLOWED_IFRAME_HOST.test(src)) {
+    const ok = data.tagName === 'iframe' ? ALLOWED_IFRAME_HOST.test(src) : ALLOWED_AUDIO_SRC.test(src)
+    if (!ok) {
       el.remove()
     }
   })

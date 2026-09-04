@@ -84,6 +84,11 @@ public class PostService {
         return fileStorage.storePostImage(file);
     }
 
+    /** 게시글 첨부 오디오(음악) 업로드 → 저장 URL 반환(리치 에디터에서 호출). */
+    public String storeAudio(MultipartFile file) {
+        return fileStorage.storePostAudio(file);
+    }
+
     /** 글 상세 조회 + 조회수 증가. 삭제글은 404. 비밀글은 작성자 본인·운영자만 열람 가능. */
     @Transactional
     public PostDetailResponse getDetail(Long postId, Member viewer) {

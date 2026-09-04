@@ -46,6 +46,9 @@ public class HtmlSanitizer {
             "youtube-nocookie.com", "www.youtube-nocookie.com",
             "youtu.be", "player.vimeo.com");
 
+    /** audio src는 우리 업로드 저장소 경로만 허용(외부 URL·스킴 전면 차단). */
+    private static final String ALLOWED_AUDIO_SRC_PREFIX = "/uploads/posts/";
+
     private final Safelist safelist = buildSafelist();
 
     /**
@@ -75,6 +78,7 @@ public class HtmlSanitizer {
         doc.outputSettings().prettyPrint(false);
         scrubStyles(doc);
         enforceIframeHostAllowlist(doc);
+        enforceAudioSrcAllowlist(doc);
         hardenAnchors(doc);
 
         String result = doc.body().html();
@@ -92,7 +96,7 @@ public class HtmlSanitizer {
     private String preserveBlankBlocks(String rawHtml) {
         Document doc = Jsoup.parseBodyFragment(rawHtml);
         for (Element el : doc.select(String.join(", ", BLANK_PRESERVE_TAGS))) {
-            boolean hasContent = el.hasText() || !el.select("img, br, iframe").isEmpty();
+            boolean hasContent = el.hasText() || !el.select("img, br, iframe, audio").isEmpty();
             if (!hasContent) {
                 el.appendChild(new Element("br"));
             }
@@ -142,6 +146,10 @@ public class HtmlSanitizer {
                 .addAttributes("a", "href", "target", "rel")
                 .addAttributes("iframe", "src", "width", "height", "frameborder", "allow", "allowfullscreen")
                 .addAttributes("img", "src", "alt", "width", "height")
+                // audio src는 상대경로(/uploads/...)라 addProtocols를 걸지 않는다(걸면 상대경로가 전부 제거됨).
+                // 대신 2차 하드닝(enforceAudioSrcAllowlist)에서 우리 저장소 경로만 통과시킨다.
+                .addTags("audio")
+                .addAttributes("audio", "src", "controls", "preload")
                 .addProtocols("a", "href", "http", "https", "mailto")
                 .addProtocols("img", "src", "http", "https")
                 .addProtocols("iframe", "src", "https");
@@ -206,6 +214,18 @@ public class HtmlSanitizer {
             return host != null && ALLOWED_IFRAME_HOSTS.contains(host.toLowerCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             return false; // 파싱 불가 → 제거
+        }
+    }
+
+    /** src가 우리 업로드 저장소 경로가 아니면 audio 자체를 제거한다(외부 URL·이상 스킴 차단). */
+    private void enforceAudioSrcAllowlist(Document doc) {
+        for (Element audio : doc.select("audio")) {
+            String src = audio.attr("src").trim();
+            if (!src.startsWith(ALLOWED_AUDIO_SRC_PREFIX) || src.contains("..")) {
+                audio.remove();
+            } else {
+                audio.attr("controls", "controls"); // 재생 컨트롤 항상 보장
+            }
         }
     }
 

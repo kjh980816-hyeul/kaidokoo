@@ -65,6 +65,13 @@ public class PostController {
         return Map.of("url", postService.storeImage(file));
     }
 
+    /** 게시글 첨부 오디오(음악) 업로드(로그인 회원). 저장된 공개 URL을 돌려준다. */
+    @PostMapping("/posts/audio")
+    public Map<String, String> uploadAudio(@CurrentMember Member member,
+                                           @RequestParam("file") MultipartFile file) {
+        return Map.of("url", postService.storeAudio(file));
+    }
+
     /** 글 수정(작성자 본인 또는 ADMIN). 권한은 서비스에서 재검증한다. */
     @PatchMapping("/posts/{id}")
     public ResponseEntity<Void> update(@CurrentMember Member member, @PathVariable Long id,

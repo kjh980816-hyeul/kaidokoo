@@ -69,6 +69,11 @@ public class LiveService {
 
     private void saveChannelId(String channelId) {
         String normalized = (channelId == null || channelId.isBlank()) ? null : channelId.trim();
+        // 씨미 live-status API는 숫자 채널 ID만 받는다(@핸들은 매 폴링 400 → 배너가 영원히 안 뜸).
+        if (normalized != null && !normalized.chars().allMatch(Character::isDigit)) {
+            throw ApiException.badRequest(
+                    "씨미 채널 ID는 숫자만 입력하세요(예: 1048628). 채널 주소의 @핸들이 아닙니다.");
+        }
         siteSettingRepository.findById(SiteSetting.KEY_SEEME_CHANNEL_ID)
                 .ifPresentOrElse(
                         s -> s.changeValue(normalized),

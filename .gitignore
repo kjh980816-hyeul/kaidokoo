@@ -31,3 +31,6 @@ Thumbs.db
 
 # API 키 메모 (절대 커밋 금지)
 각종 api 키.txt
+
+# 서버 접속정보 (절대 커밋 금지)
+server-info.txt

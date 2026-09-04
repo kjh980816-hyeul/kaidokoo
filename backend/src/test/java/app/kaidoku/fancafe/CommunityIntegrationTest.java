@@ -110,12 +110,12 @@ class CommunityIntegrationTest {
     @Test
     void live_manualToggleReflectsInPublicStatus() {
         liveService.updateSetting(new LiveUpdateRequest(
-                LiveOverrideMode.FORCE_ON, "오늘 별바다 항해 방송", "https://example.test/live", "@kaiijoku"));
+                LiveOverrideMode.FORCE_ON, "오늘 별바다 항해 방송", "https://example.test/live", "1048628"));
 
         LiveStatusResponse on = liveService.getPublicStatus();
         assertThat(on.live()).isTrue();
         assertThat(on.title()).isEqualTo("오늘 별바다 항해 방송");
-        assertThat(on.channelId()).isEqualTo("@kaiijoku");
+        assertThat(on.channelId()).isEqualTo("1048628");
 
         liveService.updateSetting(new LiveUpdateRequest(LiveOverrideMode.FORCE_OFF, null, null, null));
         assertThat(liveService.getPublicStatus().live()).isFalse();
@@ -123,8 +123,8 @@ class CommunityIntegrationTest {
 
     @Test
     void live_autoModeFollowsPollResult() {
-        liveService.updateSetting(new LiveUpdateRequest(LiveOverrideMode.AUTO, null, null, "@kaiijoku"));
-        assertThat(liveService.getAutoPollChannelId()).isEqualTo("@kaiijoku");
+        liveService.updateSetting(new LiveUpdateRequest(LiveOverrideMode.AUTO, null, null, "1048628"));
+        assertThat(liveService.getAutoPollChannelId()).isEqualTo("1048628");
 
         liveService.applyPoll(true, "폴링된 방송 제목");
         LiveStatusResponse on = liveService.getPublicStatus();

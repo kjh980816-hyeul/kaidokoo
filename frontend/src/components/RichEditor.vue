@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { watch, onBeforeUnmount } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
+import { uploadPostAudio } from '../api/posts'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import TextStyle from '@tiptap/extension-text-style'
@@ -128,6 +129,30 @@ const Iframe = Node.create({
   },
 })
 
+// 음악(오디오) 노드: 업로드한 mp3 등을 <audio controls>로 본문에 삽입한다.
+// Iframe과 같은 원리 — 서버 정화 후에도 살아남는 <audio> 태그 자체를 노드로 잡아
+// 저장·수정 왕복에서 표식 의존 없이 보존된다. (정화기는 /uploads/posts/ src만 허용)
+const AudioNode = Node.create({
+  name: 'audio',
+  group: 'block',
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      src: { default: null },
+      controls: { default: 'controls' },
+      preload: { default: 'metadata' },
+    }
+  },
+  parseHTML() {
+    return [{ tag: 'audio' }]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['audio', mergeAttributes(HTMLAttributes)]
+  },
+})
+
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
@@ -138,6 +163,7 @@ const editor = useEditor({
     FontSize,
     FontFamily,
     Iframe,
+    AudioNode,
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
     Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer nofollow' } }),
   ],
@@ -244,6 +270,36 @@ function addVideo(): void {
   editor.value.chain().focus().insertContent({ type: 'iframe', attrs: { src } }).run()
 }
 
+// 음악 업로드: 파일 선택 → 서버 업로드 → audio 노드 삽입. 업로드 중 중복 클릭 방지.
+const AUDIO_MAX_BYTES = 20 * 1024 * 1024
+const audioInput = ref<HTMLInputElement | null>(null)
+const audioUploading = ref(false)
+
+function pickAudio(): void {
+  if (audioUploading.value) return
+  audioInput.value?.click()
+}
+
+async function onAudioSelected(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // 같은 파일 재선택 허용
+  if (!file || !editor.value) return
+  if (file.size > AUDIO_MAX_BYTES) {
+    window.alert('음악 파일은 20MB 이하만 올릴 수 있어요.')
+    return
+  }
+  audioUploading.value = true
+  try {
+    const { url } = await uploadPostAudio(file)
+    editor.value.chain().focus().insertContent({ type: 'audio', attrs: { src: url } }).run()
+  } catch (e) {
+    window.alert(e instanceof Error ? e.message : '음악 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.')
+  } finally {
+    audioUploading.value = false
+  }
+}
+
 function isActive(name: string, attrs?: Record<string, unknown>): boolean {
   if (attrs) return editor.value?.isActive(name, attrs) ?? false
   return editor.value?.isActive(name) ?? false
@@ -312,6 +368,10 @@ function isAlign(value: 'left' | 'center' | 'right'): boolean {
 
       <button type="button" class="tb-btn" :class="{ on: isActive('link') }" title="링크" @click="setLink">🔗 링크</button>
       <button type="button" class="tb-btn" title="영상 삽입" @click="addVideo">▶ 영상</button>
+      <button type="button" class="tb-btn" title="음악 삽입(MP3·M4A·WAV·OGG, 20MB 이하)"
+        :disabled="audioUploading" @click="pickAudio">{{ audioUploading ? '올리는 중…' : '🎵 음악' }}</button>
+      <input ref="audioInput" type="file" accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/ogg,.mp3,.m4a,.wav,.ogg"
+        class="tb-file" @change="onAudioSelected" />
     </div>
 
     <EditorContent :editor="editor" class="editor-surface" />
@@ -445,6 +505,14 @@ function isAlign(value: 'left' | 'center' | 'right'): boolean {
   max-width: 100%;
   aspect-ratio: 16 / 9;
   border: 1px solid var(--line);
+}
+.editor-surface :deep(.ProseMirror audio) {
+  display: block;
+  width: 100%;
+  margin: 0.6em 0;
+}
+.tb-file {
+  display: none;
 }
 /* 빈 첫 문단에 placeholder 느낌(선택) */
 .editor-surface :deep(.ProseMirror p.is-editor-empty:first-child::before) {
